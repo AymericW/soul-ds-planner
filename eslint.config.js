@@ -36,8 +36,8 @@ export default tseslint.config(
       'no-alert': 'error',
     },
   },
-  { files: ['src/constants/**'], rules: forbid('models', 'domain', 'services', 'data', 'helpers', 'viewmodels', 'screens', 'components') },
-  { files: ['src/models/**'], rules: forbid('domain', 'services', 'data', 'helpers', 'viewmodels', 'screens', 'components') },
+  { files: ['src/constants/**'], rules: forbid('domain', 'services', 'data', 'helpers', 'viewmodels', 'screens', 'components') },
+  { files: ['src/models/**'], rules: forbid('constants', 'domain', 'services', 'data', 'helpers', 'viewmodels', 'screens', 'components') },
   { files: ['src/helpers/**'], rules: forbid('domain', 'services', 'data', 'viewmodels', 'screens', 'components') },
   {
     files: ['src/domain/**'],

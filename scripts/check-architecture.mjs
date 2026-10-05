@@ -15,8 +15,9 @@ const SRC = join(ROOT, 'src');
 
 /** layer -> layers it may import from (itself is always allowed). */
 const ALLOWED = {
-  constants: [],
-  models: ['constants'],
+  // constants may reference model *types* (e.g. DEFAULT_SETTINGS: Settings); models depend on nothing.
+  constants: ['models'],
+  models: [],
   helpers: ['constants', 'models'],
   domain: ['constants', 'models', 'helpers'],
   services: ['constants', 'models', 'helpers', 'domain'],
