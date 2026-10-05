@@ -16,3 +16,10 @@ export const OCR_MATCH_THRESHOLD = 0.8;
 /** Names this short (normalised) must match more strictly to avoid false positives. */
 export const OCR_SHORT_NAME_LENGTH = 4;
 export const OCR_SHORT_NAME_THRESHOLD = 0.92;
+
+/** Words that appear around names on poll / battle screenshots and are never names. */
+export const OCR_NOISE_WORDS: readonly string[] = [
+  'yes', 'no', 'v', 'pts', 'points', 'pt', 'vote', 'votes', 'voted', 'power', 'team', 'soul', 'score', 'kills', 'join', 'joined',
+  'will', 'the', 'and', 'desert', 'storm', 'battle', 'report', 'poll', 'option', 'participants', 'participant', 'players',
+  'player', 'total', 'rank', 'alliance', 'members', 'member', 'event', 'result', 'results', 'teama', 'teamb',
+];

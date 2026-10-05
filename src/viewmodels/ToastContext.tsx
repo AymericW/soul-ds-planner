@@ -26,8 +26,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const notify = useCallback(
     (message: string, tone: ToastTone = 'info') => {
       const id = nextId.current++;
-      setToasts((list) => [...list.slice(-2), { id, message, tone }]);
-      setTimeout(() => dismiss(id), tone === 'error' ? 7000 : 4000);
+      setToasts((list) => [...list.slice(-1), { id, message, tone }]);
+      setTimeout(() => dismiss(id), tone === 'error' ? 6000 : 3000);
     },
     [dismiss],
   );

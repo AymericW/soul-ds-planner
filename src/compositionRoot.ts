@@ -8,6 +8,7 @@ import { createIndexedDbRepositories } from '@/data/indexeddb/IndexedDbRepositor
 import { createInMemoryRepositories } from '@/data/memory/InMemoryRepositories';
 import { createId } from '@/helpers/id';
 import { createImportService } from '@/services/importService';
+import { createTesseractOcrService } from '@/services/ocrService';
 import type { AppServices } from '@/viewmodels/AppServicesContext';
 
 export async function createAppServices(): Promise<AppServices> {
@@ -24,6 +25,7 @@ export async function createAppServices(): Promise<AppServices> {
   return {
     repos,
     importer: createImportService(),
+    ocr: createTesseractOcrService(),
     now: () => new Date(),
     newId: createId,
     storageKind,
