@@ -472,10 +472,10 @@ button.chip:hover {
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
+}
+
+.notice > .button {
+  margin: 0.5rem 0.5rem 0 0;
 }
 
 .notice--danger {
@@ -1295,4 +1295,108 @@ button.player-card:hover,
   flex-direction: column;
   gap: 0.35rem;
   padding: 0.3rem 0 0.4rem;
+}
+
+/* ---------- Settings ---------- */
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.settings-card .card__title {
+  margin: 0;
+}
+
+.stepper {
+  display: grid;
+  grid-template-columns: 56px 1fr 56px;
+  gap: 0.4rem;
+}
+
+.stepper__btn {
+  font-size: 1.4rem;
+  padding: 0;
+}
+
+.stepper__input {
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.range {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--color-gold);
+}
+
+/* ---------- History ---------- */
+.history-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-event {
+  padding: 0;
+  overflow: hidden;
+}
+
+.history-event__head {
+  width: 100%;
+  min-height: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-event__meta {
+  display: block;
+}
+
+.history-event__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0 1rem 1rem;
+}
+
+.history-players {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+}
+
+.history-player {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+  font-size: 0.92rem;
+}
+
+.history-player:last-child {
+  border-bottom: 0;
+}
+
+.history-player__status {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.history-player__status.is-ok {
+  color: var(--color-success);
+}
+
+.history-player.is-penalised .history-player__status {
+  color: var(--color-danger);
+  font-weight: 700;
 }

@@ -164,6 +164,6 @@ export function matchOcrText(text: string, candidates: readonly NameCandidate[],
 
   const matches = [...best.values()]
     .sort((a, b) => a.position - b.position)
-    .map(({ position: _position, ...m }) => m);
+    .map((m) => ({ memberId: m.memberId, line: m.line, score: m.score, via: m.via }));
   return { matches, unmatched };
 }

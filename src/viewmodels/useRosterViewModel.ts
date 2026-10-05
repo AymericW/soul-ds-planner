@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import { UI_STORAGE_KEYS } from '@/constants/storageKeys';
-import { DEMO_ROSTER } from '@/data/demo/demoRoster';
 import { computeRosterStats } from '@/domain/history/memberStats';
 import { liftSuspensions } from '@/domain/penalties/suspensions';
 import { applyRosterImportPlan, planRosterImport } from '@/domain/roster/importPlan';
@@ -19,6 +18,7 @@ import type { RosterImportParseResult, RosterImportPlan } from '@/models/RosterI
 import { downloadTextFile, rosterToCsv } from '@/services/exportService';
 import { useAppServices } from './AppServicesContext';
 import { useAppData } from './useAppData';
+import { useDemoData } from './useDemoData';
 import { useToasts } from './ToastContext';
 
 export type RosterSort = 'name' | 'power' | 'activity' | 'participation' | 'lastPlayed';
@@ -194,16 +194,7 @@ export function useRosterViewModel() {
 
   const cancelImport = useCallback(() => setImportPreview(null), []);
 
-  const loadDemoRoster = useCallback(async () => {
-    const plan = planRosterImport(
-      members,
-      DEMO_ROSTER.map((row, i) => ({ ...row, rowNumber: i + 1 })),
-    );
-    const changed = applyRosterImportPlan(plan, members, now().toISOString(), newId);
-    await repos.members.saveMany(changed);
-    await reload();
-    notify(`Demo roster loaded: ${plan.toAdd.length} added, ${plan.toUpdate.length} updated.`, 'success');
-  }, [members, now, newId, repos, reload, notify]);
+  const loadDemoRoster = useDemoData(reload);
 
   const exportCsv = useCallback(() => {
     const sorted = [...members].sort((a, b) => a.name.localeCompare(b.name));
