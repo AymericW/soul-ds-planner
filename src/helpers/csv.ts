@@ -21,7 +21,7 @@ export function parseCsv(text: string, delimiter = detectDelimiter(text)): strin
   let row: string[] = [];
   let field = '';
   let inQuotes = false;
-  const src = text.replace(/^﻿/, '');
+  const src = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
   for (let i = 0; i < src.length; i++) {
     const ch = src[i]!;
     if (inQuotes) {
