@@ -58,10 +58,15 @@ export function RosterScreen() {
 
       {vm.counts.total === 0 && !vm.loading ? (
         <EmptyState title="No members yet">
-          <p>Add members one by one, import your roster spreadsheet (columns: name, power, activity, rank, active) or try the app with a demo roster.</p>
-          <button type="button" className="button button--primary" onClick={() => void vm.loadDemoRoster()}>
-            Load demo roster
-          </button>
+          <p>
+            Add members one by one or import your roster spreadsheet (columns: name, power, activity, rank, active)
+            {import.meta.env.DEV ? ', or try the app with a demo roster.' : '.'}
+          </p>
+          {import.meta.env.DEV && (
+            <button type="button" className="button button--primary" onClick={() => void vm.loadDemoRoster()}>
+              Load demo roster
+            </button>
+          )}
         </EmptyState>
       ) : (
         <>

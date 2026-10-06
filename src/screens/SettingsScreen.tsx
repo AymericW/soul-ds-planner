@@ -104,7 +104,7 @@ export function SettingsScreen() {
           <button type="button" className="button button--block" onClick={vm.exportRoster} disabled={vm.counts.members === 0}>
             Export roster (CSV)
           </button>
-          {isAdmin && (
+          {isAdmin && import.meta.env.DEV && (
             <button type="button" className="button button--block button--ghost" onClick={() => void vm.loadDemoRoster()}>
               Load demo roster
             </button>

@@ -34,7 +34,7 @@ export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId)
       <section className="screen">
         <h1 className="screen__title">This week</h1>
         <EmptyState title="Start with your roster">
-          <p>Add or import the alliance members first (or load the demo roster) – then come back to plan Desert Storm.</p>
+          <p>Add or import the alliance members first – then come back to plan Desert Storm.</p>
           <button type="button" className="button button--primary" onClick={() => onNavigate(ROUTES.roster)}>
             Open roster
           </button>
@@ -125,7 +125,7 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
         message={ocr.message}
         disabled={!vm.editable}
         onFile={(f) => void ocr.run(f)}
-        onTrySample={() => void vm.tryPollSample()}
+        onTrySample={import.meta.env.DEV ? () => void vm.tryPollSample() : undefined}
         onClear={ocr.clear}
       />
       <UnmatchedNames
@@ -364,7 +364,7 @@ function AttendanceStep({ vm }: { vm: WeeklyEventViewModel }) {
         progress={ocr.progress}
         message={ocr.message}
         onFile={(f) => void ocr.run(f)}
-        onTrySample={() => void vm.tryAttendanceSample()}
+        onTrySample={import.meta.env.DEV ? () => void vm.tryAttendanceSample() : undefined}
         onClear={ocr.clear}
       />
       <UnmatchedNames
