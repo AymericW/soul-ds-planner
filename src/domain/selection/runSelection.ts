@@ -59,18 +59,27 @@ export function runSelection(input: SelectionInput): SelectionResult {
   const { members, registrations, history, suspensions, settings } = input;
   const { eligible, ineligible } = splitEligibility(registrations, members, suspensions);
   const chronological = finalisedEventsChronological(history);
-  const scores = computeRelativeScores(eligible, settings.weights);
+  const volunteerIds = new Set(registrations.filter((r) => r.substituteOnly).map((r) => r.memberId));
+  const volunteers = eligible.filter((m) => volunteerIds.has(m.id));
+  const applicants = eligible.filter((m) => !volunteerIds.has(m.id));
+  // Substitute-only volunteers must not skew the "top power" the starters are compared against.
+  const scores = new Map([...computeRelativeScores(volunteers, settings.weights), ...computeRelativeScores(applicants, settings.weights)]);
 
-  const candidates: Candidate[] = eligible.map((member) => ({
+  const toCandidate = (member: Member): Candidate => ({
     member,
     score: scores.get(member.id)!,
     playedLastEvent: playedLastEvent(chronological, member.id),
     eventsSinceLastPlayed: eventsSinceLastPlayed(chronological, member.id),
-  }));
+  });
 
-  const { core, rest: afterCore } = selectCore(candidates, settings.coreStarters, settings.scoreEpsilon);
+  const { core, rest: afterCore } = selectCore(applicants.map(toCandidate), settings.coreStarters, settings.scoreEpsilon);
   const { rotation, rest: afterRotation } = selectRotation(afterCore, settings.rotationStarters);
-  const { substitutes, notSelected } = selectSubstitutes(afterRotation, settings.substitutes);
+  // Volunteers take the substitute places first; other applicants who missed a starter slot follow.
+  const volunteerCandidates = volunteers.map(toCandidate);
+  const volunteerSubs = selectSubstitutes(volunteerCandidates, settings.substitutes);
+  const otherSubs = selectSubstitutes(afterRotation, Math.max(0, settings.substitutes) - volunteerSubs.substitutes.length);
+  const substitutes = [...volunteerSubs.substitutes, ...otherSubs.substitutes];
+  const notSelected = [...volunteerSubs.notSelected, ...otherSubs.notSelected];
   const cap = registrationCap(settings);
 
   const assignments: Assignment[] = [];
@@ -86,8 +95,16 @@ export function runSelection(input: SelectionInput): SelectionResult {
       `Core #${i + 1} · score ${c.score.score.toFixed(2)} (power ${pct(c.score.powerRatio)} of top, activity ${c.member.activity}/5)`,
   );
   push('rotation', rotation, (c, i) => `Rotation #${i + 1} · ${historyNote(c)}`);
-  push('substitute', substitutes, (c, i) => `Substitute #${i + 1} · ${historyNote(c)}`);
-  push('notSelected', notSelected, (c) => `Over the cap of ${cap} · lower rotation priority (${historyNote(c)})`);
+  push(
+    'substitute',
+    substitutes,
+    (c, i) => `Substitute #${i + 1} · ${volunteerIds.has(c.member.id) ? 'volunteered as substitute' : historyNote(c)}`,
+  );
+  push('notSelected', notSelected, (c) =>
+    volunteerIds.has(c.member.id)
+      ? `Volunteered as substitute · all ${Math.max(0, settings.substitutes)} substitute places are taken`
+      : `Over the cap of ${cap} · lower rotation priority (${historyNote(c)})`,
+  );
   ineligible.forEach((x, i) =>
     assignments.push({ memberId: x.memberId, slot: 'notSelected', order: notSelected.length + i, reason: x.reason }),
   );

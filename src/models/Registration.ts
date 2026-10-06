@@ -4,4 +4,6 @@ export type RegistrationSource = 'ocr' | 'manual';
 export interface Registration {
   memberId: string;
   source: RegistrationSource;
+  /** The member only offered to be a substitute: never considered for a starter slot. */
+  substituteOnly?: boolean;
 }

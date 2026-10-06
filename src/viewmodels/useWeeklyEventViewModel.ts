@@ -16,6 +16,7 @@ import {
   setEventDate,
   setNotified,
   setRegistered,
+  setSubstituteOnly,
   syncPlanWithRegistrations,
   unlockEvent,
 } from '@/domain/events/eventLifecycle';
@@ -58,6 +59,7 @@ export interface RegistrationItem {
   power: number;
   activity: number;
   registered: boolean;
+  substituteOnly: boolean;
   fromOcr: boolean;
   inactive: boolean;
   suspendedFor: number;
@@ -203,6 +205,7 @@ export function useWeeklyEventViewModel() {
         power: m.power,
         activity: m.activity,
         registered: registered.has(m.id),
+        substituteOnly: Boolean(registered.get(m.id)?.substituteOnly),
         fromOcr: pollOcrIds.has(m.id) || registered.get(m.id)?.source === 'ocr',
         inactive: !m.active,
         suspendedFor: remainingSuspension(m.id, suspensions),
@@ -214,6 +217,18 @@ export function useWeeklyEventViewModel() {
       if (!event || !isEditable(event)) return;
       await mutateEvent((e) =>
         isEditable(e) ? setRegistered(e, memberId, !e.registrations.some((r) => r.memberId === memberId), 'manual', nowIso()) : null,
+      );
+    },
+    [event, mutateEvent, nowIso],
+  );
+
+  const toggleSubstituteOnly = useCallback(
+    async (memberId: string) => {
+      if (!event || !isEditable(event)) return;
+      await mutateEvent((e) =>
+        isEditable(e)
+          ? setSubstituteOnly(e, memberId, !e.registrations.find((r) => r.memberId === memberId)?.substituteOnly, nowIso())
+          : null,
       );
     },
     [event, mutateEvent, nowIso],
@@ -240,6 +255,7 @@ export function useWeeklyEventViewModel() {
   );
 
   const registeredCount = event?.registrations.length ?? 0;
+  const substituteOnlyCount = event?.registrations.filter((r) => r.substituteOnly).length ?? 0;
   const cap = registrationCap(settings);
   const starters = starterCount(settings);
 
@@ -527,7 +543,9 @@ export function useWeeklyEventViewModel() {
     tryPollSample,
     registrationItems,
     registeredCount,
+    substituteOnlyCount,
     toggleRegistration,
+    toggleSubstituteOnly,
     clearAllRegistrations,
     assignUnmatched,
     quickAddMember,

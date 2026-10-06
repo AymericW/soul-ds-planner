@@ -13,11 +13,15 @@ export interface ChecklistItem {
   fromOcr: boolean;
   /** Warning badge such as "Inactive" or "Suspended (2)". */
   warning?: string;
+  /** Registered only as a substitute. */
+  substituteOnly?: boolean;
 }
 
 interface MemberChecklistProps {
   items: readonly ChecklistItem[];
   onToggle: (id: string) => void;
+  /** When given, checked rows get a "Sub only" switch. */
+  onToggleSubstitute?: (id: string) => void;
   disabled?: boolean;
   checkedLabel: string;
 }
@@ -25,7 +29,7 @@ interface MemberChecklistProps {
 type Filter = 'all' | 'checked' | 'unchecked';
 
 /** Searchable roster checklist: always works, with or without OCR. */
-export function MemberChecklist({ items, onToggle, disabled, checkedLabel }: MemberChecklistProps) {
+export function MemberChecklist({ items, onToggle, onToggleSubstitute, disabled, checkedLabel }: MemberChecklistProps) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const checkedCount = items.filter((i) => i.checked).length;
@@ -54,7 +58,7 @@ export function MemberChecklist({ items, onToggle, disabled, checkedLabel }: Mem
       />
       <ul className="checklist__list">
         {visible.map((item) => (
-          <li key={item.id}>
+          <li key={item.id} className="checklist__item">
             <label className={`checklist__row${item.checked ? ' is-checked' : ''}${disabled ? ' is-disabled' : ''}`}>
               <input type="checkbox" checked={item.checked} disabled={disabled} onChange={() => onToggle(item.id)} />
               <span className="checklist__name">{item.name}</span>
@@ -62,6 +66,18 @@ export function MemberChecklist({ items, onToggle, disabled, checkedLabel }: Mem
               {item.warning && <span className="badge badge--danger">{item.warning}</span>}
               <span className="checklist__meta">{formatPower(item.power)}</span>
             </label>
+            {onToggleSubstitute && item.checked && (
+              <button
+                type="button"
+                className={`checklist__sub${item.substituteOnly ? ' is-on' : ''}`}
+                aria-pressed={item.substituteOnly}
+                disabled={disabled}
+                onClick={() => onToggleSubstitute(item.id)}
+                title="Voted to be a substitute only"
+              >
+                Sub only
+              </button>
+            )}
           </li>
         ))}
         {visible.length === 0 && <li className="muted checklist__empty">Nobody matches.</li>}

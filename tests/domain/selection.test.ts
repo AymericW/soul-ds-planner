@@ -162,3 +162,36 @@ describe('eligibility', () => {
     expect(runSelection(input(members, { registrations })).assignments).toHaveLength(2);
   });
 });
+
+describe('substitute-only volunteers', () => {
+  const volunteerInput = (members: Member[], ids: string[]): SelectionInput =>
+    input(members, {
+      registrations: members.map((m) => ({ memberId: m.id, source: 'manual' as const, ...(ids.includes(m.id) ? { substituteOnly: true } : {}) })),
+    });
+
+  it('never gives a starter slot to a volunteer, even the strongest player', () => {
+    const s = slots(runSelection(volunteerInput(roster(7), ['m1'])));
+    expect(s.core).toEqual(['m2', 'm3']);
+    expect(s.rotation).toEqual(expect.not.arrayContaining(['m1']));
+    expect(s.substitute[0]).toBe('m1');
+  });
+
+  it('gives volunteers the substitute places before other applicants', () => {
+    const s = slots(runSelection(volunteerInput(roster(7), ['m6', 'm7'])));
+    expect(s.substitute.sort()).toEqual(['m6', 'm7']);
+    expect(s.notSelected).toEqual(['m5']);
+  });
+
+  it('puts surplus volunteers in not selected when the substitute places are full', () => {
+    const s = slots(runSelection(volunteerInput(roster(5), ['m3', 'm4', 'm5'])));
+    expect(s.core).toEqual(['m1', 'm2']);
+    expect(s.substitute).toHaveLength(2);
+    expect(s.notSelected).toHaveLength(1);
+  });
+
+  it('does not let a strong volunteer shrink the starters power scores', () => {
+    const members = [makeMember({ id: 'giant', power: 900_000_000 }), makeMember({ id: 'a', power: 100_000_000 })];
+    const result = runSelection(volunteerInput(members, ['giant']));
+    expect(result.assignments.find((x) => x.memberId === 'a')!.reason).toContain('power 100% of top');
+  });
+});

@@ -136,12 +136,15 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
       />
       <div className="card">
         <div className="card__row">
-          <h3 className="card__title">Registered: {vm.registeredCount}</h3>
+          <h3 className="card__title">
+            Registered: {vm.registeredCount}
+            {vm.substituteOnlyCount > 0 && ` (${vm.substituteOnlyCount} sub only)`}
+          </h3>
           <span className="muted small">
             cap {vm.cap} ({vm.starters} starters + {vm.settings.substitutes} subs)
           </span>
         </div>
-        <p className="muted small">Tick everyone who voted – including forgotten voters. Inactive or suspended members can be ticked but will not be selected.</p>
+        <p className="muted small">Tick everyone who voted – including forgotten voters. Press “Sub only” on those who voted to be a substitute: they are never picked as starters. Inactive or suspended members can be ticked but will not be selected.</p>
         <div className="toolbar">
           <button type="button" className="button" onClick={() => setAdding(true)} disabled={!vm.editable}>
             + New member
@@ -154,11 +157,13 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
           checkedLabel="Registered"
           disabled={!vm.editable}
           onToggle={(id) => void vm.toggleRegistration(id)}
+          onToggleSubstitute={(id) => void vm.toggleSubstituteOnly(id)}
           items={vm.registrationItems.map((i) => ({
             id: i.memberId,
             name: i.name,
             power: i.power,
             checked: i.registered,
+            substituteOnly: i.substituteOnly,
             fromOcr: i.fromOcr,
             warning: i.inactive ? 'Inactive' : i.suspendedFor > 0 ? `Suspended (${i.suspendedFor})` : undefined,
           }))}

@@ -1504,3 +1504,37 @@ button.player-card:hover,
   width: auto;
   min-width: 7rem;
 }
+
+.checklist__item {
+  display: flex;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.checklist__item .checklist__row {
+  flex: 1;
+  min-width: 0;
+}
+
+.checklist__sub {
+  flex: none;
+  padding: 0 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.checklist__sub.is-on {
+  border-color: var(--color-accent-deep);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.checklist__sub:disabled {
+  cursor: default;
+  opacity: 0.75;
+}

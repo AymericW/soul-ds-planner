@@ -67,6 +67,16 @@ export function addRegistrations(event: WeekEvent, memberIds: readonly string[],
   return { ...event, registrations: [...event.registrations, ...added], updatedAt: nowIso };
 }
 
+/** Marks a registered member as "substitute only" (or back to a normal applicant). */
+export function setSubstituteOnly(event: WeekEvent, memberId: string, substituteOnly: boolean, nowIso: string): WeekEvent {
+  const current = event.registrations.find((r) => r.memberId === memberId);
+  if (!current || Boolean(current.substituteOnly) === substituteOnly) return event;
+  const registrations = event.registrations.map((r) =>
+    r.memberId === memberId ? { memberId: r.memberId, source: r.source, ...(substituteOnly ? { substituteOnly: true } : {}) } : r,
+  );
+  return { ...event, registrations, updatedAt: nowIso };
+}
+
 export function clearRegistrations(event: WeekEvent, nowIso: string): WeekEvent {
   return { ...event, registrations: [], updatedAt: nowIso };
 }
