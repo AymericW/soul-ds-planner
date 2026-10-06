@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Generates the original app icons (no external art) as PNG files using only
- * Node's built-in modules: a gold shield with a star on a navy background.
+ * Node's built-in modules: an azure shield with a gold star on an ink-indigo background.
  *
  *   node scripts/generate-icons.mjs
  *
@@ -14,10 +14,15 @@ import { fileURLToPath } from 'node:url';
 
 const OUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'icons');
 
-const NAVY = [10, 22, 48];
-const NAVY_INNER = [22, 44, 92];
-const GOLD = [232, 183, 58];
-const GOLD_BRIGHT = [255, 211, 107];
+const INK = [7, 13, 31];
+const INK_GLOW = [22, 36, 90];
+const INK_INNER = [14, 23, 49];
+const AZURE = [91, 140, 255];
+const CYAN = [122, 224, 255];
+const GOLD = [242, 193, 78];
+const GOLD_BRIGHT = [255, 224, 140];
+
+const mix = (a, b, t) => a.map((c, i) => c + (b[i] - c) * Math.min(Math.max(t, 0), 1));
 
 // ---------- PNG encoding ----------
 const CRC_TABLE = (() => {
@@ -129,9 +134,9 @@ function sample(x, y, { scale, cornerRadius }) {
   const u = 0.5 + (x - 0.5) / scale;
   const v = 0.5 + (y - 0.5) / scale;
   if (pointInPolygon(u, v, STAR)) return v < 0.43 ? GOLD_BRIGHT : GOLD;
-  if (pointInPolygon(u, v, INNER_SHIELD)) return NAVY_INNER;
-  if (pointInPolygon(u, v, OUTER_SHIELD)) return GOLD;
-  return NAVY;
+  if (pointInPolygon(u, v, INNER_SHIELD)) return INK_INNER;
+  if (pointInPolygon(u, v, OUTER_SHIELD)) return mix(AZURE, CYAN, (u + v - 0.4) / 1.0);
+  return mix(INK_GLOW, INK, (y + Math.abs(x - 0.5) * 0.6) / 0.9);
 }
 
 function render(size, options) {

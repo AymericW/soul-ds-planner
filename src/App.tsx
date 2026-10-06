@@ -18,9 +18,11 @@ export function App() {
     <div className="app">
       <header className="app-header">
         <span className="app-header__badge" aria-hidden="true">
-          SOUL
+          S
         </span>
-        <span className="app-header__title">DS Registration System</span>
+        <span className="app-header__title">
+          Soul <span>DS Planner</span>
+        </span>
       </header>
       {storageKind === 'memory' && (
         <div className="notice notice--warning app-banner" role="status">
