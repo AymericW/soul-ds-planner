@@ -85,8 +85,22 @@ export function scoreToken(tokenKey: string, tokenFolded: string, memberKey: str
   const isShort = memberKey.length <= opts.shortNameLength;
   // glued prefixes/suffixes such as "SOULIronVanguard" (only a few extra characters)
   if (!isShort && tokenFolded.length <= memberFolded.length + 4 && tokenFolded.includes(memberFolded)) return 0.93;
+  // Accented vowels (å, è, ô...) are often misread as another vowel, and icons next to the name glue 1-2 stray characters onto it.
+  if (memberKey.length >= 4 && matchesIgnoringVowels(tokenFolded, memberFolded)) return 0.9;
   const sim = similarity(tokenFolded, memberFolded);
   return sim >= (isShort ? opts.shortNameThreshold : opts.threshold) ? sim : 0;
+}
+
+const foldVowels = (s: string) => s.replace(/[aeou]/g, 'a');
+
+/** True when the member name appears in the token (≤ 2 extra characters) if every vowel is treated as equal and the first letter agrees. */
+function matchesIgnoringVowels(token: string, member: string): boolean {
+  const target = foldVowels(member);
+  const t = foldVowels(token);
+  for (let start = 0; start <= Math.min(2, t.length - target.length); start++) {
+    if (t.length - target.length - start <= 2 && t.slice(start, start + target.length) === target && token[start] === member[0]) return true;
+  }
+  return false;
 }
 
 const NOISE = new Set(OCR_NOISE_WORDS);
@@ -96,8 +110,10 @@ const NOISE = new Set(OCR_NOISE_WORDS);
  * the line is UI text (headers, sentences) rather than a player name.
  */
 export function guessNameFromLine(cleaned: string): string | null {
+  // A sentence (header, instructions) is never a player name.
+  if (cleaned.split(' ').filter(Boolean).length >= 5) return null;
   const words = cleaned
-    .split(' ')
+    .split(/[\s'’]+/)
     .map((w) => w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}_]+$/gu, ''))
     .filter((w) => normaliseName(w).length >= 3 && !NOISE.has(normaliseName(w)));
   if (words.length === 0 || words.length > 3) return null;

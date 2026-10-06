@@ -89,3 +89,30 @@ describe('matchOcrText rules', () => {
     expect(result.matches).toEqual([{ memberId: 'd', line: 'Thunderjaw', score: 1, via: 'name' }]);
   });
 });
+
+describe('accented and special-character names (French poll screenshot)', () => {
+  const roster = [
+    { id: '1', name: 'Klügán', aliases: [] },
+    { id: '2', name: 'Jåde', aliases: [] },
+    { id: '3', name: 'MegaDiridi1', aliases: [] },
+  ];
+  it('matches names whatever accents the OCR keeps or drops', () => {
+    const text = 'R4 Klugan\nPuissance :214946121 LV.35\nR3 Jade\nR2 d MegaDiridi1';
+    const ids = matchOcrText(text, roster).matches.map((m) => m.memberId);
+    expect(ids).toEqual(['1', '2', '3']);
+  });
+  it('does not offer French UI text as unmatched names', () => {
+    const { unmatched } = matchOcrText('Puissance :191024091 LV.34\nMEMBRES VOTANTS', roster);
+    expect(unmatched).toEqual([]);
+  });
+});
+
+it('ignores the French header sentence', () => {
+  const text = "Les membres suivants ont choisi l'option 3 lors de ce vote";
+  expect(matchOcrText(text, [{ id: '1', name: 'Klügán', aliases: [] }]).unmatched).toEqual([]);
+});
+
+it('matches Jåde when OCR returns an icon glyph glued to a misread vowel', () => {
+  const r = matchOcrText('BH = ÆJède\nPuissance :239694217 LV.35', [{ id: '1', name: 'Jåde', aliases: [] }]);
+  expect(r.matches.map((m) => m.memberId)).toEqual(['1']);
+});

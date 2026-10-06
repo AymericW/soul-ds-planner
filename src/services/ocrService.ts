@@ -54,7 +54,7 @@ async function prepareCanvas(image: Blob): Promise<HTMLCanvasElement> {
 type TesseractWorker = Awaited<ReturnType<(typeof import('tesseract.js'))['createWorker']>>;
 
 /**
- * Tesseract.js, loaded lazily on first use (≈ a few MB of engine + English data
+ * Tesseract.js, loaded lazily on first use (≈ a few MB of engine + English + French data (accents)
  * from a CDN, then cached by the service worker). One worker is reused.
  */
 export function createTesseractOcrService(): OcrService {
@@ -68,7 +68,7 @@ export function createTesseractOcrService(): OcrService {
         // tesseract.js is CommonJS: depending on the bundler interop the API is on the namespace or on `default`.
         const api = (loaded as unknown as { default?: typeof loaded }).default ?? loaded;
         const { createWorker, OEM, PSM } = api;
-        const worker = await createWorker('eng', OEM.LSTM_ONLY, {
+        const worker = await createWorker(['eng', 'fra'], OEM.LSTM_ONLY, {
           logger: (m) => {
             const label = m.status.startsWith('recogniz') ? 'Reading names…' : 'Loading OCR engine…';
             progressListener?.({ label, progress: m.progress });

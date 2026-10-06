@@ -1,3 +1,6 @@
+/** Letters that NFKD does not split into base letter + accent. */
+const NON_DECOMPOSING: Record<string, string> = { ø: 'o', æ: 'ae', œ: 'oe', ß: 'ss', đ: 'd', ł: 'l', ð: 'd' };
+
 /**
  * Name normalisation used for matching (roster import, OCR, aliases):
  * lower-case, accents removed, only letters and digits kept.
@@ -8,6 +11,7 @@ export function normaliseName(raw: string): string {
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
+    .replace(/[øæœßđłð]/g, (ch) => NON_DECOMPOSING[ch] ?? ch)
     .replace(/[^\p{L}\p{N}]+/gu, '');
 }
 
