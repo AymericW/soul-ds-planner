@@ -1,9 +1,11 @@
 # Architecture
 
-A mobile-first, offline PWA built with **React 19 + TypeScript (strict) + Vite**,
-**vite-plugin-pwa** (manifest + Workbox service worker), **IndexedDB** via `idb`,
+A mobile-first PWA built with **React 19 + TypeScript (strict) + Vite**,
+**vite-plugin-pwa** (manifest + Workbox service worker), a **Supabase** backend
+(Postgres + auth + realtime, see [BACKEND_SETUP.md](BACKEND_SETUP.md)),
 **Tesseract.js** (on-device OCR, lazy-loaded) and **SheetJS** (`.xlsx` import,
-lazy-loaded). No server: all data stays on the device.
+lazy-loaded). The front end is static (GitHub Pages) and talks to Supabase directly;
+there is no custom server.
 
 ## Layers and dependency direction
 
@@ -22,7 +24,7 @@ components                                       ▼
 | helpers | `src/helpers` | pure utilities: name normalisation, fuzzy matching, CSV, formatting, dates, image pixel processing | constants, models |
 | domain | `src/domain` | **all business rules**, pure and deterministic: scoring, selection, rotation, penalties, history, roster import plan, event lifecycle | constants, models, helpers |
 | services | `src/services` | side effects behind small interfaces: OCR (Tesseract), file import (CSV/XLSX), export/backup, clipboard | + domain |
-| data | `src/data` | repository **interfaces** + IndexedDB and in-memory implementations, demo roster | + domain |
+| data | `src/data` | repository and auth **interfaces**, Supabase and in-memory (tests) implementations, demo roster | + domain |
 | viewmodels | `src/viewmodels` | React hooks that load data, call domain/services and expose ready-to-render state + actions | everything above |
 | components | `src/components` | presentational UI (no data access, no rules) | constants, models, helpers |
 | screens | `src/screens` | compose components with a viewmodel; **no business logic** | viewmodels, components, helpers, constants, models |
@@ -58,7 +60,7 @@ src/
   components/  BottomNav, MemberChecklist, ScreenshotUploader, SlotBoard, PlayerCard, PlayerActionSheet,
                AttendanceList, UnmatchedNames, MemberForm, MemberCard, ImportPreviewPanel, Modal,
                ConfirmDialog, ToastHost, NumberStepper, Segmented, SearchInput, StepIndicator, …
-  screens/     RosterScreen, WeeklyEventScreen (4-step wizard), HistoryScreen, SettingsScreen
+  screens/     RosterScreen, WeeklyEventScreen (Poll, Lineup, Share, Attendance steps), HistoryScreen, SettingsScreen
   compositionRoot.ts   the ONLY place choosing implementations
 tests/         Vitest unit tests (domain, helpers, services, data) + OCR fixtures
 scripts/       generate-icons.mjs, check-architecture.mjs
@@ -73,27 +75,34 @@ player), `attendance` (entered / notified) and the ids of suspensions it issued.
 finalised. Statistics (participation, last played) are **derived** from
 finalised events and never stored, so they can never get out of sync.
 
-## Persistence and the composition root
+## Persistence, accounts and the composition root
 
 `src/data/repositories.ts` defines `MemberRepository`, `EventRepository`,
-`SuspensionRepository`, `SettingsRepository` and the `Repositories` bundle.
-`src/compositionRoot.ts` creates the IndexedDB implementation (falling back to
-the in-memory one when IndexedDB is blocked) together with the services, and
+`SuspensionRepository`, `SettingsRepository` and the `Repositories` bundle;
+`src/data/auth.ts` defines `AuthService`. `src/compositionRoot.ts` creates the
+Supabase implementations (`src/data/supabase`) together with the services, and
 `main.tsx` passes the result to `<AppServicesProvider>`. Viewmodels only see the
-interfaces through `useAppServices()`.
+interfaces through `useAppServices()`; `AuthProvider` exposes the signed-in
+account and role (`useAuth()`).
 
-### Adding a cloud repository later
+* **Storage:** each entity is a JSON document in its own table (`members`,
+  `events`, `suspensions`, `settings`), so the TypeScript models are unchanged.
+* **Roles:** `pending | r4 | r5 | disabled` in the `profiles` table. Row-level
+  security allows only R4/R5 to touch alliance data; only R5 can change roles.
+  `src/domain/accounts/permissions.ts` mirrors the rules for hiding UI.
+* **Concurrent edits:** events carry a `version`. `save_event` fails with a
+  conflict when someone saved first; `useWeeklyEventViewModel.mutateEvent`
+  re-reads and reapplies the change (up to 3 times). Finalising is a single
+  atomic database function (`finalise_event`).
+* **Live updates:** `Repositories.subscribe` listens to Supabase Realtime;
+  `useAppData` reloads (debounced) when another R4 changes something.
+* **Tests** use `createInMemoryRepositories()`, which implements the same contract.
 
-1. Create `src/data/cloud/CloudRepositories.ts` exporting
-   `createCloudRepositories(config): Repositories` (Firestore, Supabase, a REST
-   API…). Implement the four interfaces – the in-memory implementation is a
-   good, tiny template.
-2. Run the existing repository contract test against it
-   (`tests/data/inMemoryRepositories.test.ts` shows the expectations).
-3. In `src/compositionRoot.ts`, return the cloud repositories (for example when
-   the user is signed in) instead of the IndexedDB ones.
-4. Nothing in domain, viewmodels or screens changes. To migrate existing
-   devices, export a JSON backup and write it with `replaceAll` into the new store.
+### Changing backend
+
+Implement `Repositories` and `AuthService`, then return them from
+`src/compositionRoot.ts`. Nothing in domain, viewmodels or screens changes. The
+JSON backup (Settings) can move data between backends via `replaceAll`.
 
 ## OCR pipeline
 

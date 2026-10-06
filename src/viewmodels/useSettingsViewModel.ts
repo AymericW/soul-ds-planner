@@ -18,7 +18,7 @@ export interface PendingRestore {
 }
 
 export function useSettingsViewModel() {
-  const { repos, now, storageKind } = useAppServices();
+  const { repos, now } = useAppServices();
   const { notify } = useToasts();
   const data = useAppData();
   const { settings, members, events, suspensions, reload } = data;
@@ -102,7 +102,6 @@ export function useSettingsViewModel() {
 
   return {
     loading: data.loading,
-    storageKind,
     draft,
     errors,
     dirty,

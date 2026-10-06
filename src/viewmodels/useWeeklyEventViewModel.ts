@@ -6,6 +6,7 @@ import {
   createWeekEvent,
   currentOpenEvent,
   isEditable,
+  isEventOver,
   lastFinalisedEvent,
   lockEvent,
   markAttendedMany,
@@ -18,6 +19,7 @@ import {
   syncPlanWithRegistrations,
   unlockEvent,
 } from '@/domain/events/eventLifecycle';
+import { ConflictError } from '@/data/repositories';
 import { finaliseEvent } from '@/domain/penalties/finaliseEvent';
 import { isPenalised, needsNotificationAnswer } from '@/domain/penalties/penaltyRules';
 import { remainingSuspension } from '@/domain/penalties/suspensions';
@@ -72,7 +74,7 @@ export interface AttendanceItem extends PlayerView {
 function initialStep(event: WeekEvent | undefined): WizardStep {
   if (!event || event.status === 'registration') return 1;
   if (event.status === 'planned') return 2;
-  return 3;
+  return 4;
 }
 
 const toCandidate = (m: Member): NameCandidate => ({ id: m.id, name: m.name, aliases: m.aliases });
@@ -123,15 +125,33 @@ export function useWeeklyEventViewModel() {
       const id = eventIdRef.current;
       if (!id) return Promise.resolve();
       const task = queue.current.then(async () => {
-        const latest = await repos.events.get(id);
-        if (!latest) return;
-        const next = change(latest);
-        if (next && next !== latest) await repos.events.save(next);
+        // Another R4 may save between our read and write: re-read and reapply the change.
+        for (let attempt = 0; ; attempt++) {
+          const latest = await repos.events.get(id);
+          if (!latest) return;
+          const next = change(latest);
+          if (!next || next === latest) return;
+          try {
+            await repos.events.save(next);
+            return;
+          } catch (e) {
+            if (!(e instanceof ConflictError) || attempt >= 2) throw e;
+          }
+        }
       });
       queue.current = task.catch(() => undefined);
-      return task.then(reload);
+      return task
+        .catch((e: unknown) => {
+          notify(
+            e instanceof ConflictError
+              ? 'Someone else changed this event at the same moment. The latest version was loaded – please redo your last change.'
+              : `Could not save: ${e instanceof Error ? e.message : 'unknown error'}`,
+            'error',
+          );
+        })
+        .then(reload);
     },
-    [repos, reload],
+    [repos, reload, notify],
   );
 
   // ---------- start / meta ----------
@@ -300,12 +320,15 @@ export function useWeeklyEventViewModel() {
   // ---------- step 3: lock ----------
   const planText = useMemo(() => (event ? buildPlanText(event, members) : ''), [event, members]);
 
-  const lockPlan = useCallback(async () => {
-    if (!event) return;
+  /** Opens attendance: freezes the lineup. Only offered once the event day has arrived (or when forced). */
+  const eventOver = event ? isEventOver(event, toIsoDate(now())) : false;
+  const startAttendance = useCallback(async () => {
+    if (!event || event.status === 'registration') return;
     await mutateEvent((e) => lockEvent(e, nowIso()));
-    notify('Plan locked. After the event, record attendance in step 4.', 'success');
-  }, [event, mutateEvent, nowIso, notify]);
+    setStep(4);
+  }, [event, mutateEvent, nowIso]);
 
+  /** Back to planning (e.g. attendance was opened too early); the lineup becomes editable again. */
   const unlockPlan = useCallback(async () => {
     if (!event) return;
     await mutateEvent((e) => unlockEvent(e, nowIso()));
@@ -416,8 +439,18 @@ export function useWeeklyEventViewModel() {
       nowIso: nowIso(),
       newId,
     });
-    await repos.suspensions.replaceAll(result.suspensions);
-    await repos.events.save(result.event);
+    try {
+      await repos.finaliseEvent(result.event, result.suspensions);
+    } catch (e) {
+      await reload();
+      notify(
+        e instanceof ConflictError
+          ? 'Someone else changed this event while you were finalising. Review the latest attendance and finalise again.'
+          : `Could not finalise: ${e instanceof Error ? e.message : 'unknown error'}`,
+        'error',
+      );
+      return;
+    }
     await reload();
     attendanceOcr.clear();
     pollOcr.clear();
@@ -470,7 +503,7 @@ export function useWeeklyEventViewModel() {
     1: Boolean(event),
     2: Boolean(event && event.status !== 'registration'),
     3: Boolean(event && event.status !== 'registration'),
-    4: event?.status === 'locked',
+    4: event?.status === 'locked' || (event?.status === 'planned' && eventOver),
   };
 
   return {
@@ -509,7 +542,8 @@ export function useWeeklyEventViewModel() {
     // step 3
     planText,
     copyPlan,
-    lockPlan,
+    eventOver,
+    startAttendance,
     unlockPlan,
     // step 4
     attendanceOcr,

@@ -31,12 +31,13 @@ const ALLOWED = {
 
 /** Packages a layer must never import. */
 const FORBIDDEN_PACKAGES = {
-  domain: ['react', 'react-dom', 'idb', 'tesseract.js', 'xlsx'],
-  models: ['react', 'react-dom', 'idb', 'tesseract.js', 'xlsx'],
-  helpers: ['react', 'react-dom', 'idb', 'tesseract.js', 'xlsx'],
-  constants: ['react', 'react-dom', 'idb', 'tesseract.js', 'xlsx'],
-  screens: ['idb', 'tesseract.js', 'xlsx'],
-  components: ['idb', 'tesseract.js', 'xlsx'],
+  domain: ['react', 'react-dom', '@supabase/supabase-js', 'tesseract.js', 'xlsx'],
+  models: ['react', 'react-dom', '@supabase/supabase-js', 'tesseract.js', 'xlsx'],
+  helpers: ['react', 'react-dom', '@supabase/supabase-js', 'tesseract.js', 'xlsx'],
+  constants: ['react', 'react-dom', '@supabase/supabase-js', 'tesseract.js', 'xlsx'],
+  viewmodels: ['@supabase/supabase-js', 'tesseract.js', 'xlsx'],
+  screens: ['@supabase/supabase-js', 'tesseract.js', 'xlsx'],
+  components: ['@supabase/supabase-js', 'tesseract.js', 'xlsx'],
 };
 
 function walk(dir) {

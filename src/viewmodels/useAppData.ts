@@ -43,5 +43,18 @@ export function useAppData() {
     void reload();
   }, [reload]);
 
+  // Other R4s' changes arrive live; bursts of changes are merged into one reload.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const unsubscribe = repos.subscribe(() => {
+      clearTimeout(timer);
+      timer = setTimeout(() => void reload(), 250);
+    });
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [repos, reload]);
+
   return { ...data, loading, error, reload };
 }

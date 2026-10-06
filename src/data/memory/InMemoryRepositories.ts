@@ -7,10 +7,7 @@ import { mergeWithDefaultSettings } from '../settingsMerge';
 
 const copy = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
-/**
- * Non-persistent implementation of the same contracts. Used by tests and as
- * the fallback when IndexedDB is unavailable (e.g. some private browsing modes).
- */
+/** Non-persistent implementation of the same contracts, used by tests. */
 export function createInMemoryRepositories(): Repositories {
   const members = new Map<string, Member>();
   const events = new Map<string, WeekEvent>();
@@ -53,6 +50,12 @@ export function createInMemoryRepositories(): Repositories {
         settings = copy(s);
       },
     },
+    async finaliseEvent(event, list) {
+      events.set(event.id, copy(event));
+      suspensions.clear();
+      list.forEach((s) => suspensions.set(s.id, copy(s)));
+    },
+    subscribe: () => () => undefined,
     async clearAll() {
       members.clear();
       events.clear();

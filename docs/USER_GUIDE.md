@@ -67,10 +67,12 @@ Tap a player to **move** them to another group or **swap** them with someone. If
 change registrations afterwards, the app offers to keep the plan (late voters become
 the last substitutes) or to re-run. Rules are explained in `docs/ALGORITHM.md`.
 
-### Step 3 – Lock
+### Step 3 - Share
 
-**Copy plan text** and paste it in the alliance chat. **Lock the plan** when it is final
-(you can unlock it if something changes before the event).
+**Copy plan text** and paste it in the alliance chat. The poll and the lineup stay
+editable until the event: create the week on Monday, tweak starters, rotation and subs
+until Friday. Attendance opens on the event date (an "open anyway" link covers
+early/late cases).
 
 ### Step 4 – Attendance (after the event)
 
@@ -98,8 +100,8 @@ the top. To lift one early: Roster → member → **Lift suspension**.
 * Suspension length in Team A events (2; 0 disables penalties).
 * Core score weights: Power % / Activity % (70/30) and the tie margin (0.02).
 * **Export backup (JSON)** – do this regularly and before changing phone.
-  **Restore backup** replaces the data on this device with the file.
-* **Reset all data** (type RESET to confirm).
+  **Restore backup** and **Reset all data** (type RESET) replace/delete the data of the
+  whole alliance and are available to R5 only.
 
 ## 5. OCR tips (better screenshots = fewer corrections)
 
@@ -115,7 +117,9 @@ the top. To lift one early: Roster → member → **Lift suspension**.
 
 ## 6. Good to know
 
-* Data lives in this browser on this device. Using the app on two phones means two
-  separate copies – share a backup file to sync them.
-* Private/incognito browsing may block storage: the app shows a warning in that case.
-* Clearing the browser's site data deletes the app's data. Keep backups.
+* Sign in with the account an R5 created for you (see docs/BACKEND_SETUP.md). All R4s
+  share the same data and see each other's changes live; the app needs an internet
+  connection.
+* If two R4s change the same event at the very same moment, the app reloads the latest
+  version and asks you to redo your last change.
+* Keep backups (Settings → Export backup): the free backend has no automatic backups.

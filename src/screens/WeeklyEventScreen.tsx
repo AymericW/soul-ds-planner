@@ -22,7 +22,7 @@ const STATUS_LABEL = {
   finalised: 'Finalised',
 } as const;
 
-const STEP_LABELS: Record<WizardStep, string> = { 1: 'Poll', 2: 'Selection', 3: 'Lock', 4: 'Attendance' };
+const STEP_LABELS: Record<WizardStep, string> = { 1: 'Poll', 2: 'Lineup', 3: 'Share', 4: 'Attendance' };
 
 export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId) => void }) {
   const vm = useWeeklyEventViewModel();
@@ -63,7 +63,7 @@ export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId)
       />
       {vm.step === 1 && <PollStep vm={vm} />}
       {vm.step === 2 && <SelectionStep vm={vm} />}
-      {vm.step === 3 && <LockStep vm={vm} />}
+      {vm.step === 3 && <ShareStep vm={vm} />}
       {vm.step === 4 && <AttendanceStep vm={vm} />}
     </section>
   );
@@ -113,7 +113,7 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
   return (
     <div className="step">
       {!vm.editable && (
-        <div className="notice notice--info">The plan is locked. Unlock it in step 3 to change registrations.</div>
+        <div className="notice notice--info">Attendance has started, so the lineup is frozen. Go back to planning in step 4 to change registrations.</div>
       )}
       <ScreenshotUploader
         title="1. Poll screenshot"
@@ -229,7 +229,7 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
   return (
     <div className="step">
       <div className="notice notice--info">
-        {lineup} in the lineup · {vm.board.notSelected.length} not selected. {vm.editable ? 'Tap a player to move or swap them.' : 'Plan is locked.'}
+        {lineup} in the lineup · {vm.board.notSelected.length} not selected. {vm.editable ? 'Tap a player to move or swap them.' : 'Attendance has started, so the lineup is frozen.'}
       </div>
       {(lateAdds.length > 0 || withdrawn.length > 0) && vm.editable && (
         <div className="notice notice--warning">
@@ -257,7 +257,7 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
           </button>
         )}
         <button type="button" className="button button--primary" onClick={() => vm.setStep(3)}>
-          Next: lock plan
+          Next: share plan
         </button>
       </div>
       {player && (
@@ -291,8 +291,10 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
   );
 }
 
-function LockStep({ vm }: { vm: WeeklyEventViewModel }) {
-  const locked = vm.event?.status === 'locked';
+function ShareStep({ vm }: { vm: WeeklyEventViewModel }) {
+  const [confirmEarly, setConfirmEarly] = useState(false);
+  const event = vm.event;
+  const locked = event?.status === 'locked';
   return (
     <div className="step">
       <div className="card">
@@ -303,26 +305,39 @@ function LockStep({ vm }: { vm: WeeklyEventViewModel }) {
         </button>
       </div>
       {locked ? (
-        <>
-          <div className="notice notice--success">The plan is locked. After the event, go to step 4 to record attendance.</div>
-          <div className="sticky-actions sticky-actions--row">
-            <button type="button" className="button" onClick={() => void vm.unlockPlan()}>
-              Unlock to edit
-            </button>
-            <button type="button" className="button button--primary" onClick={() => vm.setStep(4)}>
-              Record attendance
-            </button>
-          </div>
-        </>
+        <div className="sticky-actions">
+          <button type="button" className="button button--primary button--block" onClick={() => vm.setStep(4)}>
+            Go to attendance
+          </button>
+        </div>
       ) : (
         <>
-          <p className="muted small">Locking freezes the plan (you can still unlock it if something changes before the event).</p>
+          <p className="muted small">
+            The poll and the lineup stay editable until the event. Attendance opens on {event ? formatEventDate(event.date) : 'the event day'}; any R4 can start it.
+          </p>
           <div className="sticky-actions">
-            <button type="button" className="button button--primary button--block" onClick={() => void vm.lockPlan()}>
-              Lock the plan
+            <button type="button" className="button button--primary button--block" disabled={!vm.eventOver} onClick={() => void vm.startAttendance()}>
+              {vm.eventOver ? 'Event finished – record attendance' : `Attendance opens ${event ? formatEventDate(event.date) : ''}`}
             </button>
+            {!vm.eventOver && (
+              <button type="button" className="button button--ghost button--small" onClick={() => setConfirmEarly(true)}>
+                Event already played? Open attendance anyway
+              </button>
+            )}
           </div>
         </>
+      )}
+      {confirmEarly && (
+        <ConfirmDialog
+          title="Open attendance early?"
+          message="The event date has not arrived yet. This freezes the lineup until you go back to planning."
+          confirmLabel="Open attendance"
+          onCancel={() => setConfirmEarly(false)}
+          onConfirm={async () => {
+            await vm.startAttendance();
+            setConfirmEarly(false);
+          }}
+        />
       )}
     </div>
   );
@@ -334,6 +349,12 @@ function AttendanceStep({ vm }: { vm: WeeklyEventViewModel }) {
   const s = vm.attendanceSummary;
   return (
     <div className="step">
+      <div className="notice notice--info">
+        <span>Lineup is frozen while attendance is recorded.</span>
+        <button type="button" className="button button--small" onClick={() => void vm.unlockPlan()}>
+          Back to planning
+        </button>
+      </div>
       <ScreenshotUploader
         title="4. Participation screenshot"
         hint="After the event, screenshot the Team A participant list. Players found are marked as entered."

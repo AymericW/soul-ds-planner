@@ -35,6 +35,11 @@ export function isEditable(event: WeekEvent): boolean {
   return event.status === 'registration' || event.status === 'planned';
 }
 
+/** Attendance can be recorded once the event day has arrived (ISO dates compare lexicographically). */
+export function isEventOver(event: WeekEvent, todayIso: string): boolean {
+  return todayIso >= event.date;
+}
+
 export function setEventDate(event: WeekEvent, date: string, nowIso: string): WeekEvent {
   return { ...event, date, label: defaultEventLabel(date), updatedAt: nowIso };
 }

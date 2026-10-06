@@ -16,7 +16,7 @@
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
-    "idb": "^8.0.3",
+    "@supabase/supabase-js": "^2.117.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tesseract.js": "^6.0.1",

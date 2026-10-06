@@ -4,6 +4,7 @@ import {
   applySelectionToEvent,
   createWeekEvent,
   currentOpenEvent,
+  isEventOver,
   lockEvent,
   markAttendedMany,
   registrationDrift,
@@ -18,6 +19,13 @@ import { makeFinalisedEvent, makeMember, makeSettings } from '../fixtures';
 const T = '2026-02-01T10:00:00.000Z';
 
 describe('event lifecycle', () => {
+  it('opens attendance only from the event day', () => {
+    const e = createWeekEvent('e', '2026-02-06', T);
+    expect(isEventOver(e, '2026-02-02')).toBe(false);
+    expect(isEventOver(e, '2026-02-06')).toBe(true);
+    expect(isEventOver(e, '2026-02-07')).toBe(true);
+  });
+
   it('finds the open event (latest non-finalised)', () => {
     const done = makeFinalisedEvent('old', '2026-01-01', {}, []);
     const open = createWeekEvent('new', '2026-01-08', T);

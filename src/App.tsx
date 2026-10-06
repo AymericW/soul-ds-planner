@@ -1,18 +1,32 @@
+import { useEffect } from 'react';
 import { BottomNav } from '@/components/BottomNav';
 import { ToastHost } from '@/components/ToastHost';
 import { ROUTES } from '@/constants/routes';
+import { AccessPendingScreen, BackendErrorScreen, LoginScreen } from '@/screens/AuthScreens';
 import { HistoryScreen } from '@/screens/HistoryScreen';
 import { RosterScreen } from '@/screens/RosterScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { WeeklyEventScreen } from '@/screens/WeeklyEventScreen';
-import { useAppServices } from '@/viewmodels/AppServicesContext';
+import { useAuth } from '@/viewmodels/AuthContext';
 import { useNavigationViewModel } from '@/viewmodels/useNavigationViewModel';
 import { useToasts } from '@/viewmodels/ToastContext';
 
 export function App() {
   const { route, navigate } = useNavigationViewModel();
-  const { toasts, dismiss } = useToasts();
-  const { storageKind } = useAppServices();
+  const { toasts, dismiss, notify } = useToasts();
+  const { status } = useAuth();
+
+  // Backend failures that no screen handled (e.g. a role removed while the app is open) still reach the user.
+  useEffect(() => {
+    const onRejection = (event: PromiseRejectionEvent) => {
+      const reason: unknown = event.reason;
+      notify(`Something went wrong: ${reason instanceof Error ? reason.message : 'unknown error'}`, 'error');
+    };
+    window.addEventListener('unhandledrejection', onRejection);
+    return () => window.removeEventListener('unhandledrejection', onRejection);
+  }, [notify]);
+
+  const ready = status === 'ready';
 
   return (
     <div className="app">
@@ -24,19 +38,18 @@ export function App() {
           Soul <span>DS Planner</span>
         </span>
       </header>
-      {storageKind === 'memory' && (
-        <div className="notice notice--warning app-banner" role="status">
-          This browser blocks offline storage (private mode?). Changes will be lost when you close the app.
-        </div>
-      )}
       <main className="app-main">
-        {route === ROUTES.event && <WeeklyEventScreen onNavigate={navigate} />}
-        {route === ROUTES.roster && <RosterScreen />}
-        {route === ROUTES.history && <HistoryScreen />}
-        {route === ROUTES.settings && <SettingsScreen />}
+        {status === 'loading' && <p className="muted">Loading…</p>}
+        {status === 'signedOut' && <LoginScreen />}
+        {status === 'pending' && <AccessPendingScreen />}
+        {status === 'error' && <BackendErrorScreen />}
+        {ready && route === ROUTES.event && <WeeklyEventScreen onNavigate={navigate} />}
+        {ready && route === ROUTES.roster && <RosterScreen />}
+        {ready && route === ROUTES.history && <HistoryScreen />}
+        {ready && route === ROUTES.settings && <SettingsScreen />}
       </main>
       <ToastHost toasts={toasts} onDismiss={dismiss} />
-      <BottomNav current={route} onNavigate={navigate} />
+      {ready && <BottomNav current={route} onNavigate={navigate} />}
     </div>
   );
 }

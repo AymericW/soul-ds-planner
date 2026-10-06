@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { AccountSection } from '@/screens/AccountSection';
+import { useAuth } from '@/viewmodels/AuthContext';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FileButton } from '@/components/FileButton';
 import { NumberStepper } from '@/components/NumberStepper';
@@ -8,6 +10,7 @@ import { useSettingsViewModel } from '@/viewmodels/useSettingsViewModel';
 
 export function SettingsScreen() {
   const vm = useSettingsViewModel();
+  const { isAdmin } = useAuth();
   const [confirmReset, setConfirmReset] = useState(false);
   const d = vm.draft;
   const hasErrors = Object.keys(vm.errors).length > 0;
@@ -86,28 +89,35 @@ export function SettingsScreen() {
       <div className="card settings-card">
         <h2 className="card__title">Backup &amp; data</h2>
         <p className="muted small">
-          Data is stored only on this device ({vm.counts.members} members, {vm.counts.events} events). Export a backup regularly and
-          to move to another phone.
-          {vm.storageKind === 'memory' && ' Warning: storage is unavailable in this browser mode – nothing is saved.'}
+          Data is shared by all R4s and stored online ({vm.counts.members} members, {vm.counts.events} events). Export a backup
+          regularly as a safety copy.
         </p>
         <div className="action-list">
           <button type="button" className="button button--block" onClick={vm.exportBackup}>
             Export backup (JSON)
           </button>
-          <FileButton accept="application/json,.json" onFile={(f) => void vm.chooseBackupFile(f)} className="button button--block">
-            Restore backup…
-          </FileButton>
+          {isAdmin && (
+            <FileButton accept="application/json,.json" onFile={(f) => void vm.chooseBackupFile(f)} className="button button--block">
+              Restore backup…
+            </FileButton>
+          )}
           <button type="button" className="button button--block" onClick={vm.exportRoster} disabled={vm.counts.members === 0}>
             Export roster (CSV)
           </button>
-          <button type="button" className="button button--block button--ghost" onClick={() => void vm.loadDemoRoster()}>
-            Load demo roster
-          </button>
-          <button type="button" className="button button--block button--danger-ghost" onClick={() => setConfirmReset(true)}>
-            Reset all data…
-          </button>
+          {isAdmin && (
+            <button type="button" className="button button--block button--ghost" onClick={() => void vm.loadDemoRoster()}>
+              Load demo roster
+            </button>
+          )}
+          {isAdmin && (
+            <button type="button" className="button button--block button--danger-ghost" onClick={() => setConfirmReset(true)}>
+              Reset all data…
+            </button>
+          )}
         </div>
       </div>
+
+      <AccountSection />
 
       {vm.pendingRestore && (
         <ConfirmDialog
@@ -115,8 +125,8 @@ export function SettingsScreen() {
           message={
             <p>
               <strong>{vm.pendingRestore.fileName}</strong> from {formatTimestamp(vm.pendingRestore.backup.exportedAt)} contains{' '}
-              {vm.pendingRestore.backup.members.length} members and {vm.pendingRestore.backup.events.length} events. Everything currently on
-              this device will be replaced.
+              {vm.pendingRestore.backup.members.length} members and {vm.pendingRestore.backup.events.length} events. Everything currently stored
+              online for the whole alliance will be replaced.
             </p>
           }
           confirmLabel="Replace my data"
@@ -128,7 +138,7 @@ export function SettingsScreen() {
       {confirmReset && (
         <ConfirmDialog
           title="Delete all data?"
-          message={<p>Roster, history, suspensions and settings will be deleted from this device. Export a backup first if unsure.</p>}
+          message={<p>Roster, history, suspensions and settings will be deleted for the whole alliance. Export a backup first if unsure.</p>}
           confirmLabel="Delete everything"
           danger
           requireText="RESET"

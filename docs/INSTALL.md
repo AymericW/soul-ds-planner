@@ -10,7 +10,7 @@ You only need the link your developer gives you (for example
 1. Open the link in **Safari** (installation only works from Safari on iOS).
 2. Tap the **Share** button (square with an arrow up).
 3. Scroll and tap **Add to Home Screen**, then **Add**.
-4. Open **SOUL DS** from the home screen. It runs full screen and works offline.
+4. Open **SOUL DS** from the home screen. It runs full screen (an internet connection is needed to sign in and sync).
 
 ### Android (Chrome)
 
@@ -25,8 +25,8 @@ The app updates itself: when a new version is published, it is downloaded in the
 background and used the next time you open the app (close and reopen it to be sure).
 Your data is kept.
 
-> Data is stored on the device, per browser. Use **Settings → Export backup** to
-> move it to another phone or share it with another R4.
+> Data is stored online and shared by all R4s. Sign in with your own account on any
+> phone. Use **Settings → Export backup** for safety copies.
 
 ---
 
