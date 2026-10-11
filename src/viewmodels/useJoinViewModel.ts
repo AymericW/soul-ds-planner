@@ -100,7 +100,7 @@ export function useJoinViewModel() {
         return {
           slot,
           team: EVENT_SLOT_INFO[slot].team,
-          timeLabel: EVENT_SLOT_INFO[slot].timeLabel,
+          timeLabel: EVENT_SLOT_INFO[slot].joinTimeLabel,
           dateLabel: e ? formatEventDate(e.date) : '',
           open: e?.status === 'registration',
         };
