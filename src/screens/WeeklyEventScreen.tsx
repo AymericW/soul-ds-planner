@@ -54,8 +54,11 @@ export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId)
       <div className="screen__head event-head">
         <div>
           <h1 className="screen__title">{formatEventDate(event.date)}</h1>
-          <p className="muted small">
-            Desert Storm · {vm.team} · {vm.timeLabel} · <span className={`badge status status--${event.status}`}>{STATUS_LABEL[event.status]}</span>
+          <p className="muted small event-head__meta">
+            <span>
+              Desert Storm · {vm.team} · {vm.timeLabel}
+            </span>
+            <span className={`badge status status--${event.status}`}>{STATUS_LABEL[event.status]}</span>
           </p>
         </div>
       </div>
@@ -221,11 +224,14 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
             {vm.cap} places ({vm.starters} starters + {vm.settings.substitutes} subs)
           </span>
         </div>
-        <p className="muted small">
-          Tick everyone who voted for {vm.team} – including forgotten voters. Press “Sub only” on those who voted to be a substitute: they are never
-          picked as starters. Inactive or suspended members can be ticked but will not be selected. Players who used the join link are already
-          ticked (“Self-registered”); you can still untick them or fix their power.
-        </p>
+        <details className="hint-details">
+          <summary className="muted small">How to fill this list</summary>
+          <p className="muted small">
+            Tick everyone who voted for {vm.team} – including forgotten voters. Press “Sub only” on those who voted to be a substitute: they are
+            never picked as starters. Inactive or suspended members can be ticked but will not be selected. Players who used the join link are
+            already ticked (“Self-registered”); you can still untick them or fix their power.
+          </p>
+        </details>
         {vm.selfRegisteredCount > 0 && <p className="small">{pluralise(vm.selfRegisteredCount, 'player')} registered themselves.</p>}
         <div className="toolbar">
           <button type="button" className="button" onClick={() => setAdding(true)} disabled={!vm.editable}>
@@ -270,12 +276,14 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
             {vm.event?.status === 'planned' ? 'Re-run selection' : 'Run selection'} for {vm.team} ({vm.registeredCount} registered)
           </button>
         )}
-        {vm.canRunBoth && (
+      </div>
+      {vm.canRunBoth && (
+        <div className="secondary-actions">
           <button type="button" className="button button--ghost button--small" onClick={() => setConfirmBoth(true)}>
             Run selection for Team A and Team B together
           </button>
-        )}
-      </div>
+        </div>
+      )}
       {editingItem && (
         <Modal title={`Power – ${editingItem.name}`} onClose={() => setEditingPower(null)}>
           <PowerEditor
@@ -432,12 +440,14 @@ function ShareStep({ vm }: { vm: WeeklyEventViewModel }) {
             <button type="button" className="button button--primary button--block" disabled={!vm.eventOver} onClick={() => void vm.startAttendance()}>
               {vm.eventOver ? 'Event finished – record attendance' : `Attendance opens ${event ? formatEventDate(event.date) : ''}`}
             </button>
-            {!vm.eventOver && (
+          </div>
+          {!vm.eventOver && (
+            <div className="secondary-actions">
               <button type="button" className="button button--ghost button--small" onClick={() => setConfirmEarly(true)}>
                 Event already played? Open attendance anyway
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </>
       )}
       {confirmEarly && (
