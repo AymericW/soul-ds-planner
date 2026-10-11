@@ -4,6 +4,7 @@ import { Segmented } from '@/components/Segmented';
 import { formatTimestamp } from '@/helpers/dates';
 import { formatPower, parsePower } from '@/helpers/format';
 import type { JoinChoice } from '@/models/JoinRequest';
+import { RefreshAppLink } from '@/screens/AppUpdateSection';
 import { useJoinViewModel, type JoinViewModel } from '@/viewmodels/useJoinViewModel';
 
 const CHOICE_OPTIONS: ReadonlyArray<{ value: JoinChoice; label: string }> = [
@@ -184,6 +185,7 @@ export function JoinScreen() {
           {vm.submitting ? 'Sending…' : vm.mode === 'member' ? (vm.previous?.submittedAt ? 'Update my answer' : 'Send') : 'Send request'}
         </button>
       </div>
+      <RefreshAppLink />
     </section>
   );
 }

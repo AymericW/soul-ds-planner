@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AccountSection } from '@/screens/AccountSection';
+import { AppUpdateSection } from '@/screens/AppUpdateSection';
 import { useAuth } from '@/viewmodels/AuthContext';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FileButton } from '@/components/FileButton';
@@ -186,6 +187,8 @@ export function SettingsScreen() {
       </div>
 
       <AccountSection />
+
+      <AppUpdateSection />
 
       {vm.pendingRestore && (
         <ConfirmDialog

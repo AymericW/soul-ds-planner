@@ -17,8 +17,17 @@ function resolveBase(): string {
   return withLeading.endsWith('/') ? withLeading : `${withLeading}/`;
 }
 
+/** Shown in Settings so players and leaders can tell which version they run. */
+const appBuild = {
+  id: (process.env.GITHUB_SHA ?? 'local').slice(0, 7),
+  time: new Date().toISOString(),
+};
+
 export default defineConfig({
   base: resolveBase(),
+  define: {
+    __APP_BUILD__: JSON.stringify(appBuild),
+  },
   server: process.env.PORT ? { port: Number(process.env.PORT) } : undefined,
   resolve: {
     alias: {
@@ -33,6 +42,10 @@ export default defineConfig({
       includeAssets: ['icons/favicon.png', 'icons/apple-touch-icon.png', 'samples/*'],
       manifest: pwaManifest,
       workbox: {
+        // A new version takes over right away. Without these the new service worker waits until every
+        // window of the app is closed, which an installed app on a phone almost never is.
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,png,svg,webmanifest,csv}'],
         navigateFallback: 'index.html',
         // OCR engine + language data are downloaded on first OCR use; cache them so OCR also works offline afterwards.

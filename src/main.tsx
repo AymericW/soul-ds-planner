@@ -1,11 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { registerSW } from 'virtual:pwa-register';
 import { App } from '@/App';
 import { createAppServices, createLocalAppServices, shouldUseLocalStubs } from '@/compositionRoot';
 import { themeCssVariables } from '@/constants/theme';
 import { readBackendConfig } from '@/data/supabase/client';
 import { SetupNeededScreen } from '@/screens/AuthScreens';
+import { startAppUpdates } from '@/services/appUpdate';
 import { AppServicesProvider } from '@/viewmodels/AppServicesContext';
 import { AuthProvider } from '@/viewmodels/AuthContext';
 import { ToastProvider } from '@/viewmodels/ToastContext';
@@ -15,7 +15,7 @@ for (const [name, value] of Object.entries(themeCssVariables())) {
   document.documentElement.style.setProperty(name, value);
 }
 
-registerSW({ immediate: true });
+startAppUpdates();
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Root element #root not found');
