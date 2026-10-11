@@ -96,7 +96,7 @@ export function JoinScreen() {
             <>
               <SearchInput value={vm.search} onChange={vm.setSearch} placeholder="Find your name…" label="Find your name" />
               <ul className="pick-list join__list">
-                {vm.matches.slice(0, 50).map((m) => (
+                {vm.matches.map((m) => (
                   <li key={m.id}>
                     <button type="button" className="pick-list__item" onClick={() => void vm.pickMember(m.id)}>
                       {m.name}
@@ -105,7 +105,6 @@ export function JoinScreen() {
                 ))}
                 {vm.matches.length === 0 && <li className="muted small">Nobody matches “{vm.search}”.</li>}
               </ul>
-              {vm.matches.length > 50 && <p className="muted small">Type a few letters of your name to narrow the list.</p>}
             </>
           )
         ) : (
@@ -135,9 +134,9 @@ export function JoinScreen() {
       </div>
 
       <div className="card">
-        <h2 className="card__title">2. Your current power</h2>
+        <h2 className="card__title">2. Your current T1 power</h2>
         <label className="field">
-          <span className="field__label">Total power</span>
+          <span className="field__label">T1 power</span>
           <input
             className="input"
             value={vm.powerText}

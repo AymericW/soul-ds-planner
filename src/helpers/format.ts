@@ -16,11 +16,13 @@ export function formatPower(power: number): string {
 export function parsePower(input: unknown): number | undefined {
   if (typeof input === 'number') return Number.isFinite(input) && input >= 0 ? scaleBare(input) : undefined;
   if (typeof input !== 'string') return undefined;
-  const raw = input.trim().toLowerCase().replace(/\s+/g, '');
+  // Ignore stray dots/commas after the number (or before its suffix): "152.", "152.3M.", "152.M".
+  const raw = input.trim().toLowerCase().replace(/\s+/g, '').replace(/[.,]+$/, '').replace(/[.,]+([kmb])$/, '$1');
   if (!raw) return undefined;
   const m = raw.match(/^([0-9.,]+)([kmb])?$/);
   if (!m) return undefined;
-  let numeric = m[1]!;
+  let numeric = m[1]!.replace(/[.,]+$/, '');
+  if (!numeric) return undefined;
   const suffix = m[2];
   const commas = (numeric.match(/,/g) ?? []).length;
   const dots = (numeric.match(/\./g) ?? []).length;
