@@ -3,31 +3,35 @@ import type { MemberStats } from '@/models/MemberStats';
 import type { Suspension } from '@/models/Suspension';
 import type { WeekEvent } from '@/models/WeekEvent';
 import { remainingSuspension } from '@/domain/penalties/suspensions';
-import { didPlay, didRegister, eventsSinceLastPlayed, finalisedEventsChronological } from './eventHistory';
+import { finalisedWeeks, playedInWeek, registeredInWeek, weeksSinceLastPlayed, type WeekRecord } from './weekHistory';
 
 /**
- * Participation rate = times played / finalised events the member registered for.
- * (Registering and not being picked lowers the rate, which is exactly what the
- * rotation tries to correct.)
+ * Participation rate = weeks played / weeks registered (Team A and Team B combined).
+ * A week where the member registered for both events and played one of them is a
+ * played week (rate 1/1), not a no-show: a player can only play once per week.
+ * Registering and not being picked lowers the rate, which is exactly what the
+ * rotation tries to correct.
  */
 export function computeMemberStats(
   member: Member,
   events: readonly WeekEvent[],
   suspensions: readonly Suspension[],
+  weeks: readonly WeekRecord[] = finalisedWeeks(events),
 ): MemberStats {
-  const chronological = finalisedEventsChronological(events);
-  let eventsRegistered = 0;
-  let timesPlayed = 0;
-  for (const event of chronological) {
-    if (didRegister(event, member.id)) eventsRegistered++;
-    if (didPlay(event, member.id)) timesPlayed++;
+  let weeksRegistered = 0;
+  let weeksPlayed = 0;
+  for (const week of weeks) {
+    const played = playedInWeek(week, member.id);
+    // Playing implies taking part, even if the registration was removed afterwards.
+    if (played || registeredInWeek(week, member.id)) weeksRegistered++;
+    if (played) weeksPlayed++;
   }
   return {
     memberId: member.id,
-    eventsRegistered,
-    timesPlayed,
-    participationRate: eventsRegistered > 0 ? Math.min(1, timesPlayed / eventsRegistered) : null,
-    eventsSinceLastPlayed: eventsSinceLastPlayed(chronological, member.id),
+    weeksRegistered,
+    weeksPlayed,
+    participationRate: weeksRegistered > 0 ? weeksPlayed / weeksRegistered : null,
+    weeksSinceLastPlayed: weeksSinceLastPlayed(weeks, member.id),
     suspensionRemaining: remainingSuspension(member.id, suspensions),
   };
 }
@@ -37,5 +41,6 @@ export function computeRosterStats(
   events: readonly WeekEvent[],
   suspensions: readonly Suspension[],
 ): Map<string, MemberStats> {
-  return new Map(members.map((m) => [m.id, computeMemberStats(m, events, suspensions)]));
+  const weeks = finalisedWeeks(events);
+  return new Map(members.map((m) => [m.id, computeMemberStats(m, events, suspensions, weeks)]));
 }

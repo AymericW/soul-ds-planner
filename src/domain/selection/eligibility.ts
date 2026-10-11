@@ -32,7 +32,7 @@ export function splitEligibility(
     const suspended = remainingSuspension(member.id, suspensions);
     if (!member.active) ineligible.push({ memberId: member.id, reason: 'Inactive member – not eligible.' });
     else if (suspended > 0) {
-      ineligible.push({ memberId: member.id, reason: `Suspended – ${pluralise(suspended, 'event')} left (no-show without notice).` });
+      ineligible.push({ memberId: member.id, reason: `Suspended – ${pluralise(suspended, 'week')} left (no-show without notice).` });
     } else eligible.push(member);
   }
   return { eligible, ineligible };

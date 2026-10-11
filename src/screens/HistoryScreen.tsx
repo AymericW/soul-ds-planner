@@ -27,7 +27,7 @@ export function HistoryScreen() {
     <section className="screen">
       <div className="screen__head">
         <h1 className="screen__title">History</h1>
-        <p className="muted small">Past Team A events, attendance and penalties.</p>
+        <p className="muted small">Past Team A and Team B events, attendance and penalties.</p>
       </div>
 
       {vm.activeSuspensions.length > 0 && (
@@ -58,7 +58,9 @@ export function HistoryScreen() {
             <article key={e.id} className="card history-event">
               <button type="button" className="history-event__head" aria-expanded={open} onClick={() => vm.toggleExpanded(e.id)}>
                 <span>
-                  <strong>{formatEventDate(e.date)}</strong>
+                  <strong>
+                    {formatEventDate(e.date)} · {e.team}
+                  </strong>
                   <span className="muted small history-event__meta">
                     {finalised ? `${e.played} played · ${e.registered} registered` : `In progress (${e.status})`}
                     {e.penalties.length > 0 && ` · ${pluralise(e.penalties.length, 'penalty', 'penalties')}`}

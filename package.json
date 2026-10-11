@@ -2,7 +2,7 @@
   "name": "soul-ds-planner",
   "private": true,
   "version": "1.0.0",
-  "description": "SOUL DS Registration System - weekly Desert Storm Team A planner (installable PWA)",
+  "description": "SOUL DS Registration System - weekly Desert Storm Team A & Team B planner (installable PWA)",
   "type": "module",
   "scripts": {
     "dev": "vite",

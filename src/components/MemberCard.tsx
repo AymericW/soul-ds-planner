@@ -1,4 +1,4 @@
-import { formatEventsAgo, formatPercent, formatPower } from '@/helpers/format';
+import { formatWeeksAgo, formatPercent, formatPower } from '@/helpers/format';
 import type { Member } from '@/models/Member';
 import type { MemberStats } from '@/models/MemberStats';
 import { ActivityStars } from './ActivityStars';
@@ -39,12 +39,12 @@ export function MemberCard({ member, stats, onSelect }: MemberCardProps) {
         <div>
           <dt>Played</dt>
           <dd>
-            {stats.timesPlayed}/{stats.eventsRegistered}
+            {stats.weeksPlayed}/{stats.weeksRegistered} weeks
           </dd>
         </div>
         <div className="member-card__wide">
           <dt>Last played</dt>
-          <dd>{formatEventsAgo(stats.eventsSinceLastPlayed)}</dd>
+          <dd>{formatWeeksAgo(stats.weeksSinceLastPlayed)}</dd>
         </div>
       </dl>
     </button>

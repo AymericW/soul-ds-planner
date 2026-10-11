@@ -65,15 +65,15 @@ describe('rotation priority', () => {
     expect(s.rotation).toEqual(['m6', 'm3']);
     expect(s.substitute).toEqual(['m7', 'm4', 'm5']);
     expect(result.assignments.find((a) => a.memberId === 'm6')!.reason).toContain('never played');
-    expect(result.assignments.find((a) => a.memberId === 'm5')!.reason).toContain('played last event');
+    expect(result.assignments.find((a) => a.memberId === 'm5')!.reason).toContain('played last week');
   });
 
   it('breaks ties by activity then power', () => {
     const c = (id: string, activity: number, power: number) => ({
       member: makeMember({ id, activity, power }),
       score: { memberId: id, powerRatio: 0, activityNorm: 0, score: 0 },
-      playedLastEvent: false,
-      eventsSinceLastPlayed: 2,
+      playedLastWeek: false,
+      weeksSinceLastPlayed: 2,
     });
     const sorted = [c('low-act', 2, 300), c('hi-act-weak', 5, 100), c('hi-act-strong', 5, 200)].sort(compareRotationPriority);
     expect(sorted.map((x) => x.member.id)).toEqual(['hi-act-strong', 'hi-act-weak', 'low-act']);
@@ -117,7 +117,7 @@ describe('under / over the registration cap', () => {
     expect(s.core.length + s.rotation.length + s.substitute.length).toBe(6);
     expect(s.notSelected).toEqual(['m7', 'm8']);
     expect(result.summary.overCap).toBe(true);
-    expect(result.assignments.find((a) => a.memberId === 'm8')!.reason).toContain('Over the cap of 6');
+    expect(result.assignments.find((a) => a.memberId === 'm8')!.reason).toContain('No place left (6 places)');
   });
 
   it('respects configurable counts', () => {
@@ -144,7 +144,7 @@ describe('eligibility', () => {
     const s = slots(result);
     expect(s.core).toEqual(['ok', 'served']);
     expect(s.notSelected.sort()).toEqual(['inactive', 'suspended']);
-    expect(result.assignments.find((a) => a.memberId === 'suspended')!.reason).toContain('Suspended – 1 event left');
+    expect(result.assignments.find((a) => a.memberId === 'suspended')!.reason).toContain('Suspended – 1 week left');
     expect(result.assignments.find((a) => a.memberId === 'inactive')!.reason).toContain('Inactive');
     expect(result.assignments.some((a) => a.memberId === 'ghost')).toBe(false);
     expect(result.summary).toEqual({ applicants: 4, eligible: 2, cap: 6, overCap: false });
@@ -170,16 +170,16 @@ describe('substitute-only volunteers', () => {
     });
 
   it('never gives a starter slot to a volunteer, even the strongest player', () => {
-    const s = slots(runSelection(volunteerInput(roster(7), ['m1'])));
+    const s = slots(runSelection(volunteerInput(roster(5), ['m1'])));
     expect(s.core).toEqual(['m2', 'm3']);
     expect(s.rotation).toEqual(expect.not.arrayContaining(['m1']));
-    expect(s.substitute[0]).toBe('m1');
+    expect(s.substitute).toContain('m1');
   });
 
-  it('gives volunteers the substitute places before other applicants', () => {
+  it('gives starter applicants the substitute places before volunteers', () => {
     const s = slots(runSelection(volunteerInput(roster(7), ['m6', 'm7'])));
-    expect(s.substitute.sort()).toEqual(['m6', 'm7']);
-    expect(s.notSelected).toEqual(['m5']);
+    expect(s.substitute.sort()).toEqual(['m5', 'm6']);
+    expect(s.notSelected).toEqual(['m7']);
   });
 
   it('puts surplus volunteers in not selected when the substitute places are full', () => {

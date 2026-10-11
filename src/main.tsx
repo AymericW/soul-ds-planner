@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from '@/App';
-import { createAppServices } from '@/compositionRoot';
+import { createAppServices, createLocalAppServices, shouldUseLocalStubs } from '@/compositionRoot';
 import { themeCssVariables } from '@/constants/theme';
 import { readBackendConfig } from '@/data/supabase/client';
 import { SetupNeededScreen } from '@/screens/AuthScreens';
@@ -23,7 +23,7 @@ const root = createRoot(container);
 
 const config = readBackendConfig();
 // Created once, outside React, so StrictMode's double render never opens two backend clients.
-const services = config ? createAppServices(config) : null;
+const services = shouldUseLocalStubs() ? await createLocalAppServices() : config ? createAppServices(config) : null;
 
 root.render(
   <StrictMode>

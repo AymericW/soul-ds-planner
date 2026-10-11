@@ -116,7 +116,7 @@ h3 {
   bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 30;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   max-width: 736px;
   margin: 0 auto;
   padding: 4px 6px;
@@ -1537,4 +1537,151 @@ button.player-card:hover,
 .checklist__sub:disabled {
   cursor: default;
   opacity: 0.75;
+}
+
+/* ---------- Two events per week: Team A / Team B switcher ---------- */
+.event-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.event-tabs__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: var(--touch-target);
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.event-tabs__item.is-selected {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 16%, var(--color-bg-elevated));
+}
+
+.event-tabs__team {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.event-tabs__meta {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+/* nav badge (pending requests) */
+.bottom-nav__item {
+  position: relative;
+}
+
+.bottom-nav__badge {
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 22px);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.checklist__name {
+  display: flex;
+  flex-direction: column;
+}
+
+.checklist__detail {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.checklist__detail.is-warning {
+  color: var(--color-warning);
+}
+
+/* Requests tab */
+.request-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.request {
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.request__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.request .toolbar {
+  margin-top: 0.5rem;
+}
+
+/* Public join page */
+.join__list {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.join__picked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.join__event {
+  margin-bottom: 0.75rem;
+}
+
+.join-code {
+  display: inline-block;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+}
+
+@media (min-width: 960px) {
+  .bottom-nav__badge {
+    position: static;
+    margin-left: auto;
+  }
+
+  .app.app--public {
+    max-width: 760px;
+    padding-left: 0;
+  }
+
+  .app--public .app-header {
+    position: static;
+    width: auto;
+    padding: 1rem 1rem 0;
+  }
 }

@@ -3,7 +3,7 @@ import type { Attendance } from '@/models/Attendance';
 import type { Member } from '@/models/Member';
 import type { Settings } from '@/models/Settings';
 import type { Suspension } from '@/models/Suspension';
-import type { WeekEvent } from '@/models/WeekEvent';
+import type { EventSlot, WeekEvent } from '@/models/WeekEvent';
 import { DEFAULT_SETTINGS } from '@/constants/defaults';
 
 const T0 = '2026-01-01T00:00:00.000Z';
@@ -34,6 +34,7 @@ export function makeFinalisedEvent(
   lineup: Record<string, Slot>,
   attended: string[],
   notified: string[] = [],
+  slot: EventSlot = 'A',
 ): WeekEvent {
   const assignments: Assignment[] = Object.entries(lineup).map(([memberId, slot], order) => ({
     memberId,
@@ -48,6 +49,7 @@ export function makeFinalisedEvent(
     id,
     label: id,
     date,
+    slot,
     status: 'finalised',
     registrations: Object.keys(lineup).map((memberId) => ({ memberId, source: 'manual' as const })),
     assignments,

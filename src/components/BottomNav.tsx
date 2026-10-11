@@ -4,6 +4,8 @@ import { NAV_ITEMS, ROUTES, type RouteId } from '@/constants/routes';
 interface BottomNavProps {
   current: RouteId;
   onNavigate: (route: RouteId) => void;
+  /** Small counters on nav items (e.g. pending requests). */
+  badges?: Partial<Record<RouteId, number>>;
 }
 
 function Icon({ children }: { children: ReactNode }) {
@@ -14,7 +16,7 @@ function Icon({ children }: { children: ReactNode }) {
   );
 }
 
-const ICONS: Record<RouteId, ReactNode> = {
+const ICONS: Partial<Record<RouteId, ReactNode>> = {
   [ROUTES.event]: (
     <Icon>
       <rect x="3" y="5" width="18" height="16" rx="3" />
@@ -25,6 +27,12 @@ const ICONS: Record<RouteId, ReactNode> = {
     <Icon>
       <circle cx="9" cy="8" r="3.5" />
       <path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6M17 4.5a3.5 3.5 0 010 7M21.5 20c0-2.5-1.5-4.5-4-5.5" />
+    </Icon>
+  ),
+  [ROUTES.requests]: (
+    <Icon>
+      <rect x="3" y="5" width="18" height="14" rx="3" />
+      <path d="M3 8l9 6 9-6" />
     </Icon>
   ),
   [ROUTES.history]: (
@@ -41,7 +49,7 @@ const ICONS: Record<RouteId, ReactNode> = {
   ),
 };
 
-export function BottomNav({ current, onNavigate }: BottomNavProps) {
+export function BottomNav({ current, onNavigate, badges = {} }: BottomNavProps) {
   return (
     <nav className="bottom-nav" aria-label="Main">
       {NAV_ITEMS.map((item) => (
@@ -56,6 +64,11 @@ export function BottomNav({ current, onNavigate }: BottomNavProps) {
             {ICONS[item.id]}
           </span>
           <span className="bottom-nav__label">{item.label}</span>
+          {(badges[item.id] ?? 0) > 0 && (
+            <span className="bottom-nav__badge" aria-label={`${badges[item.id]} pending`}>
+              {badges[item.id]}
+            </span>
+          )}
         </button>
       ))}
     </nav>

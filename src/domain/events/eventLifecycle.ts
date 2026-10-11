@@ -1,35 +1,10 @@
-import { defaultEventLabel } from '@/helpers/dates';
 import type { Assignment } from '@/models/Assignment';
 import type { Attendance } from '@/models/Attendance';
 import type { RegistrationSource } from '@/models/Registration';
 import type { Settings } from '@/models/Settings';
 import type { WeekEvent } from '@/models/WeekEvent';
-import { compareEventsChronologically } from '@/domain/history/eventHistory';
 import { addAssignment, removeAssignment } from '@/domain/selection/overrides';
-
-export function createWeekEvent(id: string, date: string, nowIso: string): WeekEvent {
-  return {
-    id,
-    label: defaultEventLabel(date),
-    date,
-    status: 'registration',
-    registrations: [],
-    assignments: [],
-    attendance: [],
-    suspensionIdsIssued: [],
-    createdAt: nowIso,
-    updatedAt: nowIso,
-  };
-}
-
-/** The event being prepared (the most recent one that is not finalised), if any. */
-export function currentOpenEvent(events: readonly WeekEvent[]): WeekEvent | undefined {
-  return [...events].filter((e) => e.status !== 'finalised').sort(compareEventsChronologically).pop();
-}
-
-export function lastFinalisedEvent(events: readonly WeekEvent[]): WeekEvent | undefined {
-  return [...events].filter((e) => e.status === 'finalised').sort(compareEventsChronologically).pop();
-}
+import { placementConflict } from '@/domain/selection/weekConflicts';
 
 export function isEditable(event: WeekEvent): boolean {
   return event.status === 'registration' || event.status === 'planned';
@@ -38,10 +13,6 @@ export function isEditable(event: WeekEvent): boolean {
 /** Attendance can be recorded once the event day has arrived (ISO dates compare lexicographically). */
 export function isEventOver(event: WeekEvent, todayIso: string): boolean {
   return todayIso >= event.date;
-}
-
-export function setEventDate(event: WeekEvent, date: string, nowIso: string): WeekEvent {
-  return { ...event, date, label: defaultEventLabel(date), updatedAt: nowIso };
 }
 
 export function setRegistered(
@@ -67,13 +38,16 @@ export function addRegistrations(event: WeekEvent, memberIds: readonly string[],
   return { ...event, registrations: [...event.registrations, ...added], updatedAt: nowIso };
 }
 
-/** Marks a registered member as "substitute only" (or back to a normal applicant). */
+/** Marks a registered member as "substitute only" (or back to a normal applicant). Other fields are kept. */
 export function setSubstituteOnly(event: WeekEvent, memberId: string, substituteOnly: boolean, nowIso: string): WeekEvent {
   const current = event.registrations.find((r) => r.memberId === memberId);
   if (!current || Boolean(current.substituteOnly) === substituteOnly) return event;
-  const registrations = event.registrations.map((r) =>
-    r.memberId === memberId ? { memberId: r.memberId, source: r.source, ...(substituteOnly ? { substituteOnly: true } : {}) } : r,
-  );
+  const registrations = event.registrations.map((r) => {
+    if (r.memberId !== memberId) return r;
+    const next = { ...r };
+    delete next.substituteOnly;
+    return substituteOnly ? { ...next, substituteOnly: true } : next;
+  });
   return { ...event, registrations, updatedAt: nowIso };
 }
 
@@ -100,12 +74,19 @@ export function registrationDrift(event: WeekEvent): { lateAdds: string[]; withd
   };
 }
 
-/** Keeps the current plan: late registrations become the last substitutes, withdrawn players are removed. */
-export function syncPlanWithRegistrations(event: WeekEvent, nowIso: string): WeekEvent {
+/**
+ * Keeps the current plan: late registrations become the last substitutes, withdrawn players are removed.
+ * A late registration who cannot be a substitute here (starter or already played in the other event
+ * of the week) is added as "not selected" with the reason.
+ */
+export function syncPlanWithRegistrations(event: WeekEvent, nowIso: string, otherEventsOfWeek: readonly WeekEvent[] = []): WeekEvent {
   const { lateAdds, withdrawn } = registrationDrift(event);
   let assignments = event.assignments;
   for (const id of withdrawn) assignments = removeAssignment(assignments, id);
-  for (const id of lateAdds) assignments = addAssignment(assignments, id);
+  for (const id of lateAdds) {
+    const conflict = placementConflict(id, 'substitute', otherEventsOfWeek);
+    assignments = conflict ? addAssignment(assignments, id, 'notSelected', conflict) : addAssignment(assignments, id);
+  }
   return { ...event, assignments, updatedAt: nowIso };
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useId, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 
 interface ModalProps {
   title: string;
@@ -7,21 +7,32 @@ interface ModalProps {
   footer?: ReactNode;
 }
 
+// Modals can stack (edit sheet + delete confirmation), so the body scroll lock is reference-counted:
+// restoring a per-modal "previous" value would leave the page locked when they close together.
+let openModals = 0;
+let overflowBeforeLock = '';
+
 /** Bottom-sheet style dialog (mobile friendly), closes on Escape or backdrop tap. */
 export function Modal({ title, onClose, children, footer }: ModalProps) {
   const titleId = useId();
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     window.addEventListener('keydown', onKey);
-    const previous = document.body.style.overflow;
+    if (openModals === 0) overflowBeforeLock = document.body.style.overflow;
+    openModals += 1;
     document.body.style.overflow = 'hidden';
     return () => {
       window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previous;
+      openModals -= 1;
+      if (openModals === 0) document.body.style.overflow = overflowBeforeLock;
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>

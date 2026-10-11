@@ -6,13 +6,14 @@ import { MemberChecklist } from '@/components/MemberChecklist';
 import { MemberForm } from '@/components/MemberForm';
 import { Modal } from '@/components/Modal';
 import { PlayerActionSheet } from '@/components/PlayerActionSheet';
+import { PowerEditor } from '@/components/PowerEditor';
 import { ScreenshotUploader } from '@/components/ScreenshotUploader';
 import { SlotBoard } from '@/components/SlotBoard';
 import { StepIndicator } from '@/components/StepIndicator';
 import { UnmatchedNames } from '@/components/UnmatchedNames';
 import { ROUTES, type RouteId } from '@/constants/routes';
-import { formatEventDate } from '@/helpers/dates';
-import { pluralise } from '@/helpers/format';
+import { formatEventDate, formatTimestamp } from '@/helpers/dates';
+import { formatPower, pluralise } from '@/helpers/format';
 import { useWeeklyEventViewModel, type WeeklyEventViewModel, type WizardStep } from '@/viewmodels/useWeeklyEventViewModel';
 
 const STATUS_LABEL = {
@@ -26,6 +27,7 @@ const STEP_LABELS: Record<WizardStep, string> = { 1: 'Poll', 2: 'Lineup', 3: 'Sh
 
 export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId) => void }) {
   const vm = useWeeklyEventViewModel();
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   if (vm.loading) return <p className="muted">Loading…</p>;
 
@@ -46,25 +48,82 @@ export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId)
   if (!vm.event) return <StartWeek vm={vm} onNavigate={onNavigate} />;
 
   const event = vm.event;
+  const finalised = event.status === 'finalised';
   return (
     <section className="screen">
       <div className="screen__head event-head">
         <div>
           <h1 className="screen__title">{formatEventDate(event.date)}</h1>
           <p className="muted small">
-            Desert Storm · Team A · <span className={`badge status status--${event.status}`}>{STATUS_LABEL[event.status]}</span>
+            Desert Storm · {vm.team} · {vm.timeLabel} · <span className={`badge status status--${event.status}`}>{STATUS_LABEL[event.status]}</span>
           </p>
         </div>
       </div>
-      <StepIndicator
-        steps={([1, 2, 3, 4] as WizardStep[]).map((id) => ({ id, label: STEP_LABELS[id], enabled: vm.unlockedSteps[id] }))}
-        current={vm.step}
-        onSelect={(id) => vm.setStep(id as WizardStep)}
-      />
-      {vm.step === 1 && <PollStep vm={vm} />}
-      {vm.step === 2 && <SelectionStep vm={vm} />}
-      {vm.step === 3 && <ShareStep vm={vm} />}
-      {vm.step === 4 && <AttendanceStep vm={vm} />}
+      {vm.weekOptions.length > 1 && (
+        <label className="field">
+          <span className="field__label">Week</span>
+          <select className="input" value={vm.weekKey ?? ''} onChange={(e) => vm.chooseWeek(e.target.value)}>
+            {vm.weekOptions.map((w) => (
+              <option key={w.key} value={w.key}>
+                {w.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <div className="event-tabs" role="tablist" aria-label="Event">
+        {vm.eventTabs.map((t) => (
+          <button
+            key={t.slot}
+            type="button"
+            role="tab"
+            aria-selected={t.slot === vm.slot}
+            className={`event-tabs__item${t.slot === vm.slot ? ' is-selected' : ''}`}
+            onClick={() => (t.status ? vm.selectSlot(t.slot) : void vm.startNewWeek(event.date))}
+          >
+            <span className="event-tabs__team">{t.team}</span>
+            <span className="event-tabs__meta">
+              {t.status ? `${t.timeLabel} · ${STATUS_LABEL[t.status]} · ${t.registered} reg.` : 'Missing – tap to create'}
+            </span>
+          </button>
+        ))}
+      </div>
+      {finalised ? (
+        <div className="notice notice--success">
+          <span>{vm.team} is finalised: attendance and penalties are in the history.</span>
+          <button type="button" className="button button--small" onClick={() => onNavigate(ROUTES.history)}>
+            View history
+          </button>
+        </div>
+      ) : (
+        <>
+          <StepIndicator
+            steps={([1, 2, 3, 4] as WizardStep[]).map((id) => ({ id, label: STEP_LABELS[id], enabled: vm.unlockedSteps[id] }))}
+            current={vm.step}
+            onSelect={(id) => vm.setStep(id as WizardStep)}
+          />
+          {vm.step === 1 && <PollStep vm={vm} />}
+          {vm.step === 2 && <SelectionStep vm={vm} />}
+          {vm.step === 3 && <ShareStep vm={vm} />}
+          {vm.step === 4 && <AttendanceStep vm={vm} />}
+          <button type="button" className="button button--danger-ghost button--small discard" onClick={() => setConfirmDiscard(true)}>
+            Cancel / delete {vm.team} of this week
+          </button>
+        </>
+      )}
+      {confirmDiscard && (
+        <ConfirmDialog
+          title={`Delete ${vm.team} of this week?`}
+          message={`${vm.team} of ${formatEventDate(event.date)}, with its registrations, lineup and attendance, will be deleted. The other event, past weeks and penalties are not affected. Events of the upcoming Friday are created again automatically (empty) the next time the app or the join page opens.`}
+          confirmLabel="Delete event"
+          danger
+          onCancel={() => setConfirmDiscard(false)}
+          onConfirm={async () => {
+            await vm.discardEvent();
+            setConfirmDiscard(false);
+          }}
+        />
+      )}
     </section>
   );
 }
@@ -77,7 +136,7 @@ function StartWeek({ vm, onNavigate }: { vm: WeeklyEventViewModel; onNavigate: (
       {vm.previousSummary && (
         <div className="notice notice--success">
           <div>
-            <strong>Last event finalised:</strong> {vm.previousSummary.label}. {pluralise(vm.previousSummary.played, 'player')} played.
+            <strong>Last week finalised:</strong> {vm.previousSummary.label}. {pluralise(vm.previousSummary.played, 'player')} played (Team A + Team B).
             {vm.previousSummary.suspendedNames.length > 0
               ? ` Suspended: ${vm.previousSummary.suspendedNames.join(', ')}.`
               : ' No penalties.'}
@@ -90,15 +149,17 @@ function StartWeek({ vm, onNavigate }: { vm: WeeklyEventViewModel; onNavigate: (
       <div className="card start-card">
         <h2 className="card__title">Start a new week</h2>
         <p className="muted">
-          Rules: {vm.settings.coreStarters} core + {vm.settings.rotationStarters} rotation starters, {vm.settings.substitutes} substitutes (cap{' '}
-          {vm.cap}). History and suspensions from previous weeks are applied automatically.
+          Every Friday has two events: Team A ({vm.eventTabs[0]?.timeLabel}) and Team B ({vm.eventTabs[1]?.timeLabel}). They are created
+          automatically for the upcoming Friday; use this only for another date. Each event: {vm.settings.coreStarters} core +{' '}
+          {vm.settings.rotationStarters} rotation starters, {vm.settings.substitutes} substitutes = {vm.cap} places. A player plays at most one
+          event per week. History and suspensions from previous weeks are applied automatically.
         </p>
         <label className="field">
-          <span className="field__label">Event date</span>
+          <span className="field__label">Event date (Friday)</span>
           <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
-        <button type="button" className="button button--primary button--block" disabled={!date} onClick={() => void vm.startNewEvent(date)}>
-          Start week
+        <button type="button" className="button button--primary button--block" disabled={!date} onClick={() => void vm.startNewWeek(date)}>
+          Create Team A and Team B
         </button>
       </div>
     </section>
@@ -107,13 +168,29 @@ function StartWeek({ vm, onNavigate }: { vm: WeeklyEventViewModel; onNavigate: (
 
 function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
   const [adding, setAdding] = useState(false);
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmBoth, setConfirmBoth] = useState(false);
+  const [editingPower, setEditingPower] = useState<string | null>(null);
+  const editingItem = editingPower ? vm.registrationItems.find((i) => i.memberId === editingPower) : undefined;
   const ocr = vm.pollOcr;
   return (
     <div className="step">
       {!vm.editable && (
         <div className="notice notice--info">Attendance has started, so the lineup is frozen. Go back to planning in step 4 to change registrations.</div>
+      )}
+      {vm.event?.status === 'registration' && (
+        <div className="notice notice--info">
+          {vm.joinLink ? (
+            <>
+              <span>Players can register themselves for Team A and/or Team B with the join link until you run the selection.</span>
+              <button type="button" className="button button--small" onClick={() => void vm.copyJoinLink()}>
+                Copy join link
+              </button>
+            </>
+          ) : (
+            <span>Tip: set a join code in Settings so players can register themselves with a link.</span>
+          )}
+        </div>
       )}
       <ScreenshotUploader
         title="1. Poll screenshot"
@@ -141,10 +218,15 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
             {vm.substituteOnlyCount > 0 && ` (${vm.substituteOnlyCount} sub only)`}
           </h3>
           <span className="muted small">
-            cap {vm.cap} ({vm.starters} starters + {vm.settings.substitutes} subs)
+            {vm.cap} places ({vm.starters} starters + {vm.settings.substitutes} subs)
           </span>
         </div>
-        <p className="muted small">Tick everyone who voted – including forgotten voters. Press “Sub only” on those who voted to be a substitute: they are never picked as starters. Inactive or suspended members can be ticked but will not be selected.</p>
+        <p className="muted small">
+          Tick everyone who voted for {vm.team} – including forgotten voters. Press “Sub only” on those who voted to be a substitute: they are never
+          picked as starters. Inactive or suspended members can be ticked but will not be selected. Players who used the join link are already
+          ticked (“Self-registered”); you can still untick them or fix their power.
+        </p>
+        {vm.selfRegisteredCount > 0 && <p className="small">{pluralise(vm.selfRegisteredCount, 'player')} registered themselves.</p>}
         <div className="toolbar">
           <button type="button" className="button" onClick={() => setAdding(true)} disabled={!vm.editable}>
             + New member
@@ -158,6 +240,8 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
           disabled={!vm.editable}
           onToggle={(id) => void vm.toggleRegistration(id)}
           onToggleSubstitute={(id) => void vm.toggleSubstituteOnly(id)}
+          onEdit={(id) => setEditingPower(id)}
+          editLabel="Power"
           items={vm.registrationItems.map((i) => ({
             id: i.memberId,
             name: i.name,
@@ -166,20 +250,57 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
             substituteOnly: i.substituteOnly,
             fromOcr: i.fromOcr,
             warning: i.inactive ? 'Inactive' : i.suspendedFor > 0 ? `Suspended (${i.suspendedFor})` : undefined,
+            badges: [
+              ...(i.registered && i.selfRegistered ? [{ label: 'Self-registered', tone: 'rank' as const }] : []),
+              ...(i.otherEventNote ? [{ label: i.otherEventNote, tone: 'muted' as const }] : []),
+            ],
+            detail:
+              i.registered && i.selfRegistered
+                ? `${i.submittedAt ? `Sent ${formatTimestamp(i.submittedAt)}` : 'Sent'}${i.enteredPower !== undefined ? ` · entered ${formatPower(i.enteredPower)}` : ''}${i.powerPending ? ' · power change waiting for review' : ''}`
+                : i.powerPending
+                  ? 'Power change waiting for review'
+                  : undefined,
+            detailWarning: i.powerPending,
           }))}
         />
       </div>
       <div className="sticky-actions">
         {vm.editable && (
           <button type="button" className="button button--primary button--block" disabled={vm.registeredCount === 0} onClick={() => void vm.runWeeklySelection()}>
-            {vm.event?.status === 'planned' ? 'Re-run selection' : 'Run selection'} ({vm.registeredCount} registered)
+            {vm.event?.status === 'planned' ? 'Re-run selection' : 'Run selection'} for {vm.team} ({vm.registeredCount} registered)
+          </button>
+        )}
+        {vm.canRunBoth && (
+          <button type="button" className="button button--ghost button--small" onClick={() => setConfirmBoth(true)}>
+            Run selection for Team A and Team B together
           </button>
         )}
       </div>
-      {vm.event?.status === 'registration' && (
-        <button type="button" className="button button--danger-ghost button--small discard" onClick={() => setConfirmDiscard(true)}>
-          Discard this week
-        </button>
+      {editingItem && (
+        <Modal title={`Power – ${editingItem.name}`} onClose={() => setEditingPower(null)}>
+          <PowerEditor
+            name={editingItem.name}
+            currentPower={editingItem.power}
+            enteredPower={editingItem.enteredPower}
+            onCancel={() => setEditingPower(null)}
+            onSave={async (power) => {
+              await vm.updateMemberPower(editingItem.memberId, power);
+              setEditingPower(null);
+            }}
+          />
+        </Modal>
+      )}
+      {confirmBoth && (
+        <ConfirmDialog
+          title="Plan Team A and Team B together?"
+          message="Both lineups are recomputed from their registrations so that nobody is in both (the event with fewer players gets first pick). Manual moves and swaps in both events are lost."
+          confirmLabel="Run both"
+          onCancel={() => setConfirmBoth(false)}
+          onConfirm={async () => {
+            await vm.runWeeklySelection('both');
+            setConfirmBoth(false);
+          }}
+        />
       )}
       {adding && (
         <Modal title="Add new member" onClose={() => setAdding(false)}>
@@ -196,26 +317,13 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
       {confirmClear && (
         <ConfirmDialog
           title="Untick everyone?"
-          message="All registrations for this week will be removed."
+          message={`All registrations for ${vm.team} of this week will be removed.`}
           confirmLabel="Untick all"
           danger
           onCancel={() => setConfirmClear(false)}
           onConfirm={async () => {
             await vm.clearAllRegistrations();
             setConfirmClear(false);
-          }}
-        />
-      )}
-      {confirmDiscard && (
-        <ConfirmDialog
-          title="Discard this week?"
-          message="The registrations of this week will be deleted. History is not affected."
-          confirmLabel="Discard"
-          danger
-          onCancel={() => setConfirmDiscard(false)}
-          onConfirm={async () => {
-            await vm.discardEvent();
-            setConfirmDiscard(false);
           }}
         />
       )}
@@ -234,7 +342,7 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
   return (
     <div className="step">
       <div className="notice notice--info">
-        {lineup} in the lineup · {vm.board.notSelected.length} not selected. {vm.editable ? 'Tap a player to move or swap them.' : 'Attendance has started, so the lineup is frozen.'}
+        {lineup} in the lineup · {vm.board.notSelected.length} not selected. {vm.editable ? 'Tap a player to move or swap them.' : 'Attendance has started, so the lineup is frozen.'} A player is never in both lineups of the week (a starter here cannot be listed in the other event).
       </div>
       {(lateAdds.length > 0 || withdrawn.length > 0) && vm.editable && (
         <div className="notice notice--warning">
@@ -362,7 +470,7 @@ function AttendanceStep({ vm }: { vm: WeeklyEventViewModel }) {
       </div>
       <ScreenshotUploader
         title="4. Participation screenshot"
-        hint="After the event, screenshot the Team A participant list. Players found are marked as entered."
+        hint={`After the event, screenshot the ${vm.team} participant list. Players found are marked as entered.`}
         imageUrl={ocr.imageUrl}
         status={ocr.status}
         progressLabel={ocr.progressLabel}

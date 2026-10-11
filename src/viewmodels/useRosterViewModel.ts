@@ -3,6 +3,7 @@ import { UI_STORAGE_KEYS } from '@/constants/storageKeys';
 import { computeRosterStats } from '@/domain/history/memberStats';
 import { liftSuspensions } from '@/domain/penalties/suspensions';
 import { applyRosterImportPlan, planRosterImport } from '@/domain/roster/importPlan';
+import { leaderPowerChange } from '@/domain/roster/powerChanges';
 import {
   createMember,
   removeAlias as removeAliasRule,
@@ -46,10 +47,10 @@ function readSort(): RosterSort {
 
 const EMPTY_STATS = (memberId: string): MemberStats => ({
   memberId,
-  eventsRegistered: 0,
-  timesPlayed: 0,
+  weeksRegistered: 0,
+  weeksPlayed: 0,
   participationRate: null,
-  eventsSinceLastPlayed: null,
+  weeksSinceLastPlayed: null,
   suspensionRemaining: 0,
 });
 
@@ -94,7 +95,7 @@ export function useRosterViewModel() {
       activity: (a, b) => b.member.activity - a.member.activity || byName(a, b),
       participation: (a, b) => (b.stats.participationRate ?? -1) - (a.stats.participationRate ?? -1) || byName(a, b),
       lastPlayed: (a, b) =>
-        (b.stats.eventsSinceLastPlayed ?? Infinity) - (a.stats.eventsSinceLastPlayed ?? Infinity) || byName(a, b),
+        (b.stats.weeksSinceLastPlayed ?? Infinity) - (a.stats.weeksSinceLastPlayed ?? Infinity) || byName(a, b),
     };
     return list.sort(sorters[sort]);
   }, [members, stats, search, filter, sort]);
@@ -122,6 +123,8 @@ export function useRosterViewModel() {
       const existing = editingId ? members.find((m) => m.id === editingId) : undefined;
       const member = existing ? updateMember(existing, draft, nowIso) : createMember(draft, newId(), nowIso);
       await repos.members.save(member);
+      const change = leaderPowerChange(existing, member, newId(), nowIso);
+      if (change) await repos.powerChanges.saveMany([change]);
       await reload();
       notify(existing ? `${member.name} updated.` : `${member.name} added to the roster.`, 'success');
       return {};
@@ -179,8 +182,13 @@ export function useRosterViewModel() {
     setBusy(true);
     try {
       const { plan } = importPreview;
-      const changed = applyRosterImportPlan(plan, members, now().toISOString(), newId);
+      const nowIso = now().toISOString();
+      const changed = applyRosterImportPlan(plan, members, nowIso, newId);
       await repos.members.saveMany(changed);
+      // Power updates from the spreadsheet are leader edits too: keep them in the power history.
+      const before = new Map(members.map((m) => [m.id, m]));
+      const history = changed.map((m) => leaderPowerChange(before.get(m.id), m, newId(), nowIso)).filter((c) => c !== null);
+      if (history.length) await repos.powerChanges.saveMany(history);
       await reload();
       notify(
         `Import done: ${plan.toAdd.length} added, ${plan.toUpdate.length} updated, ${plan.unchanged.length} unchanged, ${plan.skipped.length} skipped.`,

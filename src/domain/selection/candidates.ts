@@ -5,7 +5,8 @@ import type { ScoreBreakdown } from '@/domain/scoring/relativeScore';
 export interface Candidate {
   member: Member;
   score: ScoreBreakdown;
-  playedLastEvent: boolean;
-  /** 0 = played last finalised event; null = never played. */
-  eventsSinceLastPlayed: number | null;
+  /** Played (Team A or Team B) in the most recent finalised week. */
+  playedLastWeek: boolean;
+  /** 0 = played in the last finalised week; null = never played. */
+  weeksSinceLastPlayed: number | null;
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { EVENT_SLOT_INFO } from '@/constants/events';
 import { compareEventsChronologically } from '@/domain/history/eventHistory';
 import { isSuspensionActive } from '@/domain/penalties/suspensions';
 import { assignmentsBySlot } from '@/domain/selection/overrides';
@@ -18,6 +19,8 @@ export interface HistoryPlayer {
 export interface HistoryEventView {
   id: string;
   label: string;
+  /** "Team A" / "Team B". */
+  team: string;
   date: string;
   status: EventStatus;
   registered: number;
@@ -63,6 +66,7 @@ export function useHistoryViewModel() {
         return {
           id: e.id,
           label: e.label,
+          team: EVENT_SLOT_INFO[e.slot]?.team ?? 'Team A',
           date: e.date,
           status: e.status,
           registered: e.registrations.length,

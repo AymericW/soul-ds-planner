@@ -19,6 +19,7 @@ function resolveBase(): string {
 
 export default defineConfig({
   base: resolveBase(),
+  server: process.env.PORT ? { port: Number(process.env.PORT) } : undefined,
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

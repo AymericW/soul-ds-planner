@@ -41,26 +41,30 @@ The rules are enforced twice:
 
 ```
 src/
-  constants/   defaults.ts, rules.ts, routes.ts, storageKeys.ts, theme.ts, pwa.ts
-  models/      Member, Settings, Registration, Assignment, Attendance, Suspension, WeekEvent, MemberStats, Backup, RosterImport
+  constants/   defaults.ts, rules.ts (incl. JOIN_LIMITS), events.ts (Team A/B times), routes.ts, storageKeys.ts, theme.ts, pwa.ts
+  models/      Member, Settings, Registration, Assignment, Attendance, Suspension, WeekEvent (+ EventSlot), MemberStats,
+               JoinRequest (join page types), PowerChange, Backup, RosterImport
   domain/
     scoring/     relativeScore.ts (formula), coreRanking.ts (ε close-call rule)
-    selection/   eligibility, core, rotation, substitutes, runSelection (orchestrator), overrides, planText
-    penalties/   penaltyRules, suspensions (countdown, lift), finaliseEvent
-    history/     eventHistory (played, events since), memberStats (participation)
-    events/      eventLifecycle (registrations, lock, attendance edits)
-    roster/      memberRules (validation, aliases), importPlan (add/update/skip)
+    selection/   eligibility, core, rotation, substitutes, runSelection (one event), weekSelection (Team A + B),
+                 weekConflicts (one game per week), overrides, planText
+    penalties/   penaltyRules, suspensions (countdown, lift), finaliseEvent (weekly countdown)
+    history/     eventHistory (played), weekHistory (weeks since, A+B combined), memberStats (participation)
+    events/      eventLifecycle (registrations, lock, attendance edits), weekEvents (upcoming Friday, A/B ids, weeks)
+    join/        joinRules (code, choices → registration, power rule), joinRequests (unlisted players)
+    roster/      memberRules (validation, aliases), importPlan (add/update/skip), powerChanges, nameSuggestions
     settings/    settingsRules (validation)
-  helpers/     normalise, fuzzy, nameMatching (OCR text → members), csv, format, dates, imagePreprocessing, id
+  helpers/     normalise, fuzzy, nameMatching (OCR text → members), csv, format, dates (incl. Paris date), imagePreprocessing, id
   services/    ocrService, importService + rosterTableParser, exportService (backup, CSV), clipboardService
-  data/        repositories.ts (interfaces), indexeddb/, memory/, demo/, settingsMerge.ts
+  data/        repositories.ts (interfaces incl. JoinGateway), supabase/, memory/ (+ inMemoryJoin), local/, demo/, settingsMerge.ts
   viewmodels/  AppServicesContext, ToastContext, useAppData, useNavigationViewModel,
-               useRosterViewModel, useWeeklyEventViewModel, useScreenshotOcr,
-               useHistoryViewModel, useSettingsViewModel, useDemoData
+               useRosterViewModel, useWeeklyEventViewModel, useScreenshotOcr, useJoinViewModel,
+               useRequestsViewModel (+ usePendingRequestCount), useHistoryViewModel, useSettingsViewModel, useDemoData
   components/  BottomNav, MemberChecklist, ScreenshotUploader, SlotBoard, PlayerCard, PlayerActionSheet,
-               AttendanceList, UnmatchedNames, MemberForm, MemberCard, ImportPreviewPanel, Modal,
+               AttendanceList, UnmatchedNames, MemberForm, MemberCard, ImportPreviewPanel, Modal, PowerEditor,
                ConfirmDialog, ToastHost, NumberStepper, Segmented, SearchInput, StepIndicator, …
-  screens/     RosterScreen, WeeklyEventScreen (Poll, Lineup, Share, Attendance steps), HistoryScreen, SettingsScreen
+  screens/     RosterScreen, WeeklyEventScreen (Team A/B switcher; Poll, Lineup, Share, Attendance steps), RequestsScreen,
+               HistoryScreen, SettingsScreen, JoinScreen (public, no login)
   compositionRoot.ts   the ONLY place choosing implementations
 tests/         Vitest unit tests (domain, helpers, services, data) + OCR fixtures
 scripts/       generate-icons.mjs, check-architecture.mjs
@@ -68,12 +72,19 @@ scripts/       generate-icons.mjs, check-architecture.mjs
 
 ## Data model in one paragraph
 
-A `WeekEvent` moves through `registration → planned → locked → finalised`.
-It holds `registrations` (who voted), `assignments` (slot + order + reason per
-player), `attendance` (entered / notified) and the ids of suspensions it issued.
-`Suspension`s live in their own store and count down when later events are
-finalised. Statistics (participation, last played) are **derived** from
-finalised events and never stored, so they can never get out of sync.
+Every Friday has two `WeekEvent`s, `slot` **A** (10 PM) and **B** (1 PM), with
+deterministic ids `YYYY-MM-DD-A` / `-B`, created automatically for the upcoming Friday by
+`ensureWeekEvents()` (database function `ensure_week_events`). Each moves independently
+through `registration → planned → locked → finalised`.
+It holds `registrations` (who voted or self-registered, with `source` ocr/manual/self),
+`assignments` (slot + order + reason per player), `attendance` (entered / notified) and the
+ids of suspensions it issued. The two events of a week are tied together only by domain
+rules (`selectWeek`, `weekConflicts`: one game per player per week).
+`Suspension`s live in their own store and count down once per week. Statistics
+(participation, last played) are **derived** from finalised events, counted in weeks
+(A + B combined), and never stored, so they can never get out of sync.
+`JoinRequest`s (players not in the roster) and `PowerChange`s (power history, pending
+self-reported changes) are leader-only documents fed by the public join page.
 
 ## Persistence, accounts and the composition root
 
@@ -96,7 +107,16 @@ account and role (`useAuth()`).
   atomic database function (`finalise_event`).
 * **Live updates:** `Repositories.subscribe` listens to Supabase Realtime;
   `useAppData` reloads (debounced) when another R4 changes something.
-* **Tests** use `createInMemoryRepositories()`, which implements the same contract.
+* **Tests** use `createInMemoryRepositories()`, which implements the same contract
+  (including the join gateway, which mirrors the `join_*` database functions: code check,
+  bounds, idempotent resubmit, closed registrations, unlisted requests, rate limits).
+  `npm run dev` uses the same in-memory store seeded with the demo roster, the join code
+  `LOCALDEV` and this week's events (`src/data/local`); nothing is persisted locally, so the
+  switch to two events per week needed no local data migration.
+* **Public join page:** `#/join?code=…` renders outside the login gate (`App.tsx`) and
+  only uses `Repositories.join` (`JoinGateway`). With Supabase that is a handful of
+  `SECURITY DEFINER` functions; no table is readable by anonymous users
+  (`supabase/migrations/0002_two_events_and_join.sql`).
 
 ### Changing backend
 

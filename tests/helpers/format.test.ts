@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatEventsAgo, formatPercent, formatPower, parsePower } from '@/helpers/format';
+import { formatWeeksAgo, formatPercent, formatPower, parsePower } from '@/helpers/format';
 
 describe('parsePower', () => {
   const cases: Array<[unknown, number | undefined]> = [
@@ -34,8 +34,8 @@ describe('formatting', () => {
   it('formats percentages and "events ago"', () => {
     expect(formatPercent(0.666)).toBe('67%');
     expect(formatPercent(null)).toBe('–');
-    expect(formatEventsAgo(null)).toBe('never');
-    expect(formatEventsAgo(0)).toBe('last event');
-    expect(formatEventsAgo(3)).toBe('3 events ago');
+    expect(formatWeeksAgo(null)).toBe('never');
+    expect(formatWeeksAgo(0)).toBe('last week');
+    expect(formatWeeksAgo(3)).toBe('3 weeks ago');
   });
 });

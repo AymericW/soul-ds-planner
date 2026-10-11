@@ -14,5 +14,8 @@ export function mergeWithDefaultSettings(stored: Partial<Settings> | undefined):
       activity: num(stored?.weights?.activity, DEFAULT_SETTINGS.weights.activity),
     },
     scoreEpsilon: num(stored?.scoreEpsilon, DEFAULT_SETTINGS.scoreEpsilon),
+    joinCode: typeof stored?.joinCode === 'string' ? stored.joinCode : DEFAULT_SETTINGS.joinCode,
+    powerDropTolerancePct: num(stored?.powerDropTolerancePct, DEFAULT_SETTINGS.powerDropTolerancePct),
+    powerRiseTolerancePct: num(stored?.powerRiseTolerancePct, DEFAULT_SETTINGS.powerRiseTolerancePct),
   };
 }

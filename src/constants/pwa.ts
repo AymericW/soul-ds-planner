@@ -3,7 +3,7 @@ import { themeTokens } from './theme';
 export const APP_NAME = 'SOUL DS Registration System';
 export const APP_SHORT_NAME = 'SOUL DS';
 export const APP_DESCRIPTION =
-  'Plan the weekly Desert Storm Team A for the SOUL alliance: registrations, fair rotation, attendance and penalties.';
+  'Plan the weekly Desert Storm Team A and Team B for the SOUL alliance: registrations, fair rotation, attendance and penalties.';
 
 /** Web app manifest shared by vite.config.ts (vite-plugin-pwa). Paths are relative to the base URL. */
 export const pwaManifest = {

@@ -12,6 +12,7 @@ export function SettingsScreen() {
   const vm = useSettingsViewModel();
   const { isAdmin } = useAuth();
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmCode, setConfirmCode] = useState(false);
   const d = vm.draft;
   const hasErrors = Object.keys(vm.errors).length > 0;
 
@@ -23,24 +24,24 @@ export function SettingsScreen() {
       </div>
 
       <div className="card settings-card">
-        <h2 className="card__title">Team A slots</h2>
+        <h2 className="card__title">Places per event (Team A and Team B each)</h2>
         <NumberStepper label="Core starters" value={d.coreStarters} {...SETTINGS_LIMITS.coreStarters} error={vm.errors.coreStarters} onChange={(v) => vm.setCount('coreStarters', v)} hint="Picked by relative score (power + activity)." />
         <NumberStepper label="Rotation starters" value={d.rotationStarters} {...SETTINGS_LIMITS.rotationStarters} error={vm.errors.rotationStarters} onChange={(v) => vm.setCount('rotationStarters', v)} hint="Fair turn for those who waited longest." />
         <NumberStepper label="Substitutes" value={d.substitutes} {...SETTINGS_LIMITS.substitutes} error={vm.errors.substitutes} onChange={(v) => vm.setCount('substitutes', v)} />
         <div className="notice notice--info">
-          Maximum registrations: <strong>{Number.isFinite(vm.cap) ? vm.cap : '–'}</strong> (starters + substitutes). Below this cap everybody who applies gets a place.
+          Places per event: <strong>{Number.isFinite(vm.cap) ? vm.cap : '–'}</strong> (starters + substitutes). There is no limit on registrations: if more eligible players register than there are places, the selection picks who gets one and the rest are not selected.
         </div>
       </div>
 
       <div className="card settings-card">
         <h2 className="card__title">Penalties</h2>
         <NumberStepper
-          label="Suspension length (Team A events)"
+          label="Suspension length (weeks)"
           value={d.suspensionEvents}
           {...SETTINGS_LIMITS.suspensionEvents}
           error={vm.errors.suspensionEvents}
           onChange={(v) => vm.setCount('suspensionEvents', v)}
-          hint="A starter who does not show up and did not notify is excluded for this many events. 0 = no suspensions."
+          hint="A starter who does not show up and did not notify is excluded from Team A and Team B for this many weeks. 0 = no suspensions."
         />
       </div>
 
@@ -72,6 +73,73 @@ export function SettingsScreen() {
           onChange={(v) => vm.setScoreEpsilon(v / 100)}
           hint="When two core scores are this close, the more active player ranks higher. Default 2 (= 0.02)."
         />
+      </div>
+
+      <div className="card settings-card">
+        <h2 className="card__title">Player join link</h2>
+        <p className="muted small">
+          Players open this link (no login) to register for Team A and/or Team B and to report their power. Anyone with the link can use it: share it
+          only in the alliance chat and change the code if it leaks.
+        </p>
+        {vm.joinLink ? (
+          <>
+            <div className="field">
+              <span className="field__label">Join code</span>
+              <code className="join-code">{vm.joinCode}</code>
+            </div>
+            <div className="action-list">
+              <button type="button" className="button button--block button--primary" onClick={() => void vm.copyJoinLink()}>
+                Copy join link
+              </button>
+              <button type="button" className="button button--block" disabled={vm.dirty} onClick={() => setConfirmCode(true)}>
+                New code (old link stops working)
+              </button>
+              <button type="button" className="button button--block button--ghost" disabled={vm.dirty} onClick={() => void vm.disableJoinPage()}>
+                Disable the join page
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="action-list">
+            <p className="small">The join page is disabled (no code yet).</p>
+            <button type="button" className="button button--block button--primary" disabled={vm.dirty} onClick={() => void vm.regenerateJoinCode()}>
+              Create a join code
+            </button>
+          </div>
+        )}
+        {vm.dirty && <p className="muted small">Save or undo your rule changes before changing the code.</p>}
+        <label className="field">
+          <span className="field__label">Accepted power drop: −{d.powerDropTolerancePct}%</span>
+          <input
+            className="range"
+            type="range"
+            min={SETTINGS_LIMITS.powerDropTolerancePct.min}
+            max={SETTINGS_LIMITS.powerDropTolerancePct.max}
+            step={1}
+            value={d.powerDropTolerancePct}
+            onChange={(e) => vm.setTolerance('powerDropTolerancePct', Number(e.target.value))}
+            aria-label="Accepted power drop percent"
+          />
+          {vm.errors.powerDropTolerancePct && <span className="field__error">{vm.errors.powerDropTolerancePct}</span>}
+        </label>
+        <label className="field">
+          <span className="field__label">Accepted power rise: +{d.powerRiseTolerancePct}%</span>
+          <input
+            className="range"
+            type="range"
+            min={SETTINGS_LIMITS.powerRiseTolerancePct.min}
+            max={SETTINGS_LIMITS.powerRiseTolerancePct.max}
+            step={5}
+            value={d.powerRiseTolerancePct}
+            onChange={(e) => vm.setTolerance('powerRiseTolerancePct', Number(e.target.value))}
+            aria-label="Accepted power rise percent"
+          />
+          <span className="field__hint">
+            A power entered on the join page within this range of the roster value updates the roster immediately. Outside it, the roster is kept and
+            the change waits in Requests for a leader.
+          </span>
+          {vm.errors.powerRiseTolerancePct && <span className="field__error">{vm.errors.powerRiseTolerancePct}</span>}
+        </label>
       </div>
 
       <div className="sticky-actions sticky-actions--row">
@@ -133,6 +201,18 @@ export function SettingsScreen() {
           danger
           onCancel={vm.cancelRestore}
           onConfirm={vm.confirmRestore}
+        />
+      )}
+      {confirmCode && (
+        <ConfirmDialog
+          title="Create a new join code?"
+          message={<p>The current link stops working immediately. Share the new link in the alliance chat afterwards.</p>}
+          confirmLabel="New code"
+          onCancel={() => setConfirmCode(false)}
+          onConfirm={async () => {
+            await vm.regenerateJoinCode();
+            setConfirmCode(false);
+          }}
         />
       )}
       {confirmReset && (

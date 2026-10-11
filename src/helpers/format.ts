@@ -47,9 +47,9 @@ export function pluralise(count: number, singular: string, plural = `${singular}
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-/** "0 events ago" reads badly; 0 => "last event". */
-export function formatEventsAgo(eventsAgo: number | null): string {
-  if (eventsAgo === null) return 'never';
-  if (eventsAgo === 0) return 'last event';
-  return `${pluralise(eventsAgo, 'event')} ago`;
+/** "0 weeks ago" reads badly; 0 => "last week". */
+export function formatWeeksAgo(weeksAgo: number | null): string {
+  if (weeksAgo === null) return 'never';
+  if (weeksAgo === 0) return 'last week';
+  return `${pluralise(weeksAgo, 'week')} ago`;
 }

@@ -1,3 +1,4 @@
+import { EVENT_SLOT_INFO } from '@/constants/events';
 import { formatEventDate } from '@/helpers/dates';
 import type { Member } from '@/models/Member';
 import type { WeekEvent } from '@/models/WeekEvent';
@@ -8,7 +9,8 @@ export function buildPlanText(event: WeekEvent, members: readonly Member[]): str
   const names = new Map(members.map((m) => [m.id, m.name]));
   const name = (id: string) => names.get(id) ?? '(removed member)';
   const slots = assignmentsBySlot(event.assignments);
-  const lines = [`SOUL – Desert Storm Team A – ${formatEventDate(event.date)}`, ''];
+  const info = EVENT_SLOT_INFO[event.slot];
+  const lines = [`SOUL – Desert Storm ${info.team} – ${formatEventDate(event.date)}, ${info.timeLabel}`, ''];
   lines.push(`CORE (${slots.core.length}): ${slots.core.map((a) => name(a.memberId)).join(', ') || '–'}`);
   lines.push(`ROTATION (${slots.rotation.length}): ${slots.rotation.map((a) => name(a.memberId)).join(', ') || '–'}`);
   lines.push(
@@ -16,6 +18,10 @@ export function buildPlanText(event: WeekEvent, members: readonly Member[]): str
       slots.substitute.map((a, i) => `${i + 1}. ${name(a.memberId)}`).join(', ') || '–'
     }`,
   );
-  lines.push('', 'Starters: if you cannot join, tell an R4 or arrange a substitute – no-shows without notice are suspended.');
+  lines.push(
+    '',
+    'Starters: if you cannot join, tell an R4 or arrange a substitute – no-shows without notice are suspended.',
+    'You can play only one event per week (Team A or Team B).',
+  );
   return lines.join('\n');
 }

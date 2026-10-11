@@ -7,4 +7,7 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   suspensionEvents: 2,
   weights: Object.freeze({ power: 0.7, activity: 0.3 }),
   scoreEpsilon: 0.02,
+  joinCode: '',
+  powerDropTolerancePct: 10,
+  powerRiseTolerancePct: 30,
 });

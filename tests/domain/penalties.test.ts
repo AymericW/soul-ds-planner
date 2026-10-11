@@ -13,6 +13,7 @@ function lockedEvent(id: string, date: string, lineup: Record<string, 'core' | '
     id,
     label: `DS ${date}`,
     date,
+    slot: 'A',
     status: 'locked',
     registrations: Object.keys(lineup).map((memberId) => ({ memberId, source: 'manual' })),
     assignments: Object.entries(lineup).map(([memberId, slot], order) => ({ memberId, slot, order, reason: '' })),
@@ -104,7 +105,7 @@ describe('finaliseEvent', () => {
 });
 
 describe('suspension countdown', () => {
-  it('counts down once per finalised Team A event; new suspensions start counting at the NEXT event', () => {
+  it('counts down once per finalised week; new suspensions start counting at the NEXT week', () => {
     const settings = makeSettings({ suspensionEvents: 2, coreStarters: 1, rotationStarters: 0, substitutes: 5 });
     const members = [makeMember({ id: 'flaky', power: 300_000_000 }), makeMember({ id: 'b' })];
     let suspensions: Suspension[] = [];
@@ -144,5 +145,30 @@ describe('suspension countdown', () => {
   it('can be lifted early by an R4', () => {
     const list = [makeSuspension({ id: 'a', memberId: 'x', remainingEvents: 2 })];
     expect(isSuspended('x', liftSuspensions('x', list, 'now'))).toBe(false);
+  });
+});
+
+describe('penalties with two events per week', () => {
+  const settings = makeSettings({ suspensionEvents: 2 });
+  const inSlot = (e: WeekEvent, slot: 'A' | 'B'): WeekEvent => ({ ...e, id: `${e.date}-${slot}`, slot });
+
+  it('counts suspensions down once per week: the second event of the week does not count again', () => {
+    const old = [makeSuspension({ id: 'old', memberId: 'x', remainingEvents: 2 })];
+    // Team B (1 PM) is finalised first: countdown 2 -> 1, and b no-shows.
+    const b = inSlot(lockedEvent('w', '2026-03-06', { b: 'core' }), 'B');
+    const resB = finaliseEvent({ event: b, attendance: [], suspensions: old, settings, nowIso: 't1', newId, sameWeekEvents: [] });
+    expect(remainingSuspension('x', resB.suspensions)).toBe(1);
+    expect(resB.issued.map((s) => s.memberId)).toEqual(['b']);
+    // Team A of the same Friday: no second countdown; its own no-show is still penalised.
+    const a = inSlot(lockedEvent('w', '2026-03-06', { a: 'rotation' }), 'A');
+    const resA = finaliseEvent({ event: a, attendance: [], suspensions: resB.suspensions, settings, nowIso: 't2', newId, sameWeekEvents: [resB.event] });
+    expect(remainingSuspension('x', resA.suspensions)).toBe(1);
+    expect(remainingSuspension('b', resA.suspensions)).toBe(2);
+    expect(resA.issued.map((s) => s.memberId)).toEqual(['a']);
+    expect(resA.issued[0]!.reason).toContain('2 weeks');
+    // Next week: everyone counts down once.
+    const next = inSlot(lockedEvent('w', '2026-03-13', {}), 'A');
+    const resNext = finaliseEvent({ event: next, attendance: [], suspensions: resA.suspensions, settings, nowIso: 't3', newId, sameWeekEvents: [] });
+    expect(['x', 'b', 'a'].map((id) => remainingSuspension(id, resNext.suspensions))).toEqual([0, 1, 1]);
   });
 });

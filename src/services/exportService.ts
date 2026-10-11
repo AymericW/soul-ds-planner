@@ -51,11 +51,13 @@ export function parseBackup(text: string): BackupFile {
   return {
     ...(data as unknown as BackupFile),
     members: (data.members as Member[]).map((m) => ({ ...m, aliases: Array.isArray(m.aliases) ? m.aliases : [] })),
+    // Backups made before Team B existed only contain Team A events.
+    events: (data.events as WeekEvent[]).map((e) => ({ ...e, slot: e.slot === 'B' ? 'B' : 'A' })),
   };
 }
 
 export function rosterToCsv(members: readonly Member[], stats: ReadonlyMap<string, MemberStats>): string {
-  const header = ['Name', 'Power', 'Activity', 'Rank', 'Active', 'Participation', 'Times played', 'Events since last played', 'Suspended (events left)'];
+  const header = ['Name', 'Power', 'Activity', 'Rank', 'Active', 'Participation', 'Weeks played', 'Weeks since last played', 'Suspended (weeks left)'];
   const rows = members.map((m) => {
     const s = stats.get(m.id);
     return [
@@ -65,8 +67,8 @@ export function rosterToCsv(members: readonly Member[], stats: ReadonlyMap<strin
       m.rank ?? '',
       m.active ? 'yes' : 'no',
       formatPercent(s?.participationRate ?? null),
-      s?.timesPlayed ?? 0,
-      s?.eventsSinceLastPlayed ?? 'never',
+      s?.weeksPlayed ?? 0,
+      s?.weeksSinceLastPlayed ?? 'never',
       s?.suspensionRemaining ?? 0,
     ];
   });

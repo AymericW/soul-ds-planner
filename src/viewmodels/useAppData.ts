@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DEFAULT_SETTINGS } from '@/constants/defaults';
+import type { JoinRequest } from '@/models/JoinRequest';
 import type { Member } from '@/models/Member';
+import type { PowerChange } from '@/models/PowerChange';
 import type { Settings } from '@/models/Settings';
 import type { Suspension } from '@/models/Suspension';
 import type { WeekEvent } from '@/models/WeekEvent';
@@ -11,9 +13,11 @@ export interface AppDataSnapshot {
   events: WeekEvent[];
   suspensions: Suspension[];
   settings: Settings;
+  joinRequests: JoinRequest[];
+  powerChanges: PowerChange[];
 }
 
-const EMPTY: AppDataSnapshot = { members: [], events: [], suspensions: [], settings: { ...DEFAULT_SETTINGS } };
+const EMPTY: AppDataSnapshot = { members: [], events: [], suspensions: [], settings: { ...DEFAULT_SETTINGS }, joinRequests: [], powerChanges: [] };
 
 /** Loads every collection from the repositories; `reload()` after each write. */
 export function useAppData() {
@@ -24,13 +28,15 @@ export function useAppData() {
 
   const reload = useCallback(async () => {
     try {
-      const [members, events, suspensions, settings] = await Promise.all([
+      const [members, events, suspensions, settings, joinRequests, powerChanges] = await Promise.all([
         repos.members.list(),
         repos.events.list(),
         repos.suspensions.list(),
         repos.settings.get(),
+        repos.joinRequests.list(),
+        repos.powerChanges.list(),
       ]);
-      setData({ members, events, suspensions, settings });
+      setData({ members, events, suspensions, settings, joinRequests, powerChanges });
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load data.');
@@ -43,7 +49,7 @@ export function useAppData() {
     void reload();
   }, [reload]);
 
-  // Other R4s' changes arrive live; bursts of changes are merged into one reload.
+  // Other R4s' changes (and players' self-registrations) arrive live; bursts are merged into one reload.
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const unsubscribe = repos.subscribe(() => {

@@ -8,3 +8,5 @@ export * from './WeekEvent';
 export * from './MemberStats';
 export * from './Backup';
 export * from './RosterImport';
+export * from './JoinRequest';
+export * from './PowerChange';

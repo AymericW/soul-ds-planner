@@ -1,14 +1,17 @@
-/** Participation statistics derived from finalised events (never stored). */
+/**
+ * Participation statistics derived from finalised events (never stored).
+ * Counted in WEEKS: Team A and Team B of the same Friday form one week.
+ */
 export interface MemberStats {
   memberId: string;
-  /** Finalised events the member registered for. */
-  eventsRegistered: number;
-  /** Finalised events the member actually played (starter who attended, or substitute who entered). */
-  timesPlayed: number;
-  /** timesPlayed / eventsRegistered, or null when never registered. */
+  /** Weeks with a finalised event the member registered for (Team A, Team B or both). */
+  weeksRegistered: number;
+  /** Weeks the member actually played (in Team A or Team B; a week counts once). */
+  weeksPlayed: number;
+  /** weeksPlayed / weeksRegistered, or null when never registered. */
   participationRate: number | null;
-  /** 0 = played in the most recent finalised event, 1 = the one before, ...; null = never played. */
-  eventsSinceLastPlayed: number | null;
-  /** Remaining suspended events (0 when not suspended). */
+  /** 0 = played in the most recent finalised week, 1 = the week before, ...; null = never played. */
+  weeksSinceLastPlayed: number | null;
+  /** Remaining suspended weeks (0 when not suspended). */
   suspensionRemaining: number;
 }

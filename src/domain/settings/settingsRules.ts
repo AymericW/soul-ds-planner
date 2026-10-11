@@ -1,15 +1,30 @@
-import { SETTINGS_LIMITS } from '@/constants/rules';
+import { JOIN_CODE_PATTERN, SETTINGS_LIMITS } from '@/constants/rules';
 import type { Settings } from '@/models/Settings';
 
-export type SettingsErrors = Partial<Record<'coreStarters' | 'rotationStarters' | 'substitutes' | 'suspensionEvents' | 'weights' | 'scoreEpsilon', string>>;
+export type SettingsErrors = Partial<
+  Record<
+    | 'coreStarters'
+    | 'rotationStarters'
+    | 'substitutes'
+    | 'suspensionEvents'
+    | 'weights'
+    | 'scoreEpsilon'
+    | 'joinCode'
+    | 'powerDropTolerancePct'
+    | 'powerRiseTolerancePct',
+    string
+  >
+>;
 
-type CountField = 'coreStarters' | 'rotationStarters' | 'substitutes' | 'suspensionEvents';
+type CountField = 'coreStarters' | 'rotationStarters' | 'substitutes' | 'suspensionEvents' | 'powerDropTolerancePct' | 'powerRiseTolerancePct';
 
 const COUNT_LABELS: Record<CountField, string> = {
   coreStarters: 'Core starters',
   rotationStarters: 'Rotation starters',
   substitutes: 'Substitutes',
   suspensionEvents: 'Suspension length',
+  powerDropTolerancePct: 'Accepted power drop',
+  powerRiseTolerancePct: 'Accepted power rise',
 };
 
 /** Validates user-entered settings; an empty object means valid. */
@@ -27,6 +42,7 @@ export function validateSettings(s: Settings): SettingsErrors {
   if (!(power >= 0 && activity >= 0 && power + activity > 0)) errors.weights = 'Weights must be positive and not both zero.';
   const { min, max } = SETTINGS_LIMITS.scoreEpsilon;
   if (!(s.scoreEpsilon >= min && s.scoreEpsilon <= max)) errors.scoreEpsilon = `Tie margin must be between ${min} and ${max}.`;
+  if (s.joinCode !== '' && !JOIN_CODE_PATTERN.test(s.joinCode)) errors.joinCode = 'The join code must be 6–16 capital letters or digits.';
   return errors;
 }
 

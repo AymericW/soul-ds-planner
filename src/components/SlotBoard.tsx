@@ -19,7 +19,7 @@ const SECTIONS: ReadonlyArray<{ slot: Slot; title: string; hint: string }> = [
   { slot: 'core', title: 'Core', hint: 'Best relative score (power + activity)' },
   { slot: 'rotation', title: 'Rotation', hint: 'Fair turn for players who waited longest' },
   { slot: 'substitute', title: 'Substitutes', hint: 'Called in this order if a starter is missing' },
-  { slot: 'notSelected', title: 'Not selected', hint: 'Over the cap, inactive or suspended' },
+  { slot: 'notSelected', title: 'Not selected', hint: 'No place left, inactive or suspended' },
 ];
 
 export function SlotBoard({ board, capacity, onSelectPlayer, selectedId }: SlotBoardProps) {
