@@ -1,0 +1,22 @@
+# Netlify build settings. The app uses hash routes (#/join, #/event...), so no rewrites are needed.
+# Set these two in Netlify: Site configuration -> Environment variables
+#   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY   (same values as the GitHub Actions variables)
+# Do NOT set VITE_BASE: it defaults to "/" which is right for a *.netlify.app domain.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# The service worker and manifest must always be revalidated so app updates reach installed PWAs.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"
