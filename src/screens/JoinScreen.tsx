@@ -165,13 +165,13 @@ export function JoinScreen() {
             {e.open ? (
               <Segmented label={e.team} value={vm.choices[e.slot]} options={CHOICE_OPTIONS} onChange={(v) => vm.setChoice(e.slot, v)} />
             ) : (
-              <span className="notice notice--warning">Registrations closed – the leaders have already planned {e.team}.</span>
+              <span className="notice notice--warning">Registrations closed for {e.team} (sign-ups end Wednesday 10 PM (22h) Paris time).</span>
             )}
           </div>
         ))}
         <p className="muted small">
           “Play”: you can be picked as a starter; if not, you may be a substitute. “Sub only”: only as a substitute. Choosing “Play” for both is fine:
-          you will be placed in one of them.
+          you will be placed in one of them. Sign-ups close Wednesday 10 PM (22h) Paris time.
         </p>
       </div>
 

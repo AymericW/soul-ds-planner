@@ -4,6 +4,14 @@ import type { EventSlot } from '@/models/WeekEvent';
 export const EVENT_WEEKDAY = 5;
 export const EVENT_TIME_ZONE = 'Europe/Paris';
 
+/**
+ * Players can sign up on the join page until Wednesday 10 PM (Paris time) before the Friday,
+ * even after a leader ran the selection (the leaders re-run it to include late sign-ups).
+ * private.join_open() in supabase/migrations/0003_join_open_until_wednesday.sql uses the same values.
+ */
+export const JOIN_DEADLINE_DAYS_BEFORE = 2;
+export const JOIN_DEADLINE_TIME = '22:00';
+
 export interface EventSlotInfo {
   team: string;
   /** Start time shown to leaders. */

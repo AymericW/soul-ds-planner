@@ -1,4 +1,6 @@
+import { EVENT_TIME_ZONE, JOIN_DEADLINE_DAYS_BEFORE, JOIN_DEADLINE_TIME } from '@/constants/events';
 import { JOIN_CODE_ALPHABET, JOIN_CODE_LENGTH, JOIN_LIMITS } from '@/constants/rules';
+import { addDays, dateInTimeZone, timeInTimeZone } from '@/helpers/dates';
 import { formatPower } from '@/helpers/format';
 import { cleanDisplayName, normaliseName } from '@/helpers/normalise';
 import { JOIN_CHOICES, type JoinChoice, type JoinChoices, type JoinPowerOutcome } from '@/models/JoinRequest';
@@ -8,7 +10,7 @@ import { EVENT_SLOTS, type WeekEvent } from '@/models/WeekEvent';
 
 /**
  * Rules of the public join page. The database functions in
- * supabase/migrations/0002_two_events_and_join.sql implement the same rules server side;
+ * supabase/migrations/0002_two_events_and_join.sql (and 0003_join_open_until_wednesday.sql) implement the same rules server side;
  * the in-memory repositories use these functions directly.
  */
 
@@ -105,7 +107,24 @@ export function evaluatePowerUpdate(currentPower: number, newPower: number, sett
   return newPower >= low && newPower <= high ? 'applied' : 'pending';
 }
 
-/** Can a player still change their answer for this event? (Afterwards the leaders' data wins.) */
-export function isOpenForSelfRegistration(event: WeekEvent | undefined): boolean {
-  return event?.status === 'registration';
+/** Self-registration deadline of an event (yyyy-mm-dd Friday): Wednesday, 22:00 Paris time. */
+export function joinDeadline(eventDate: string): { date: string; time: string } {
+  return { date: addDays(eventDate, -JOIN_DEADLINE_DAYS_BEFORE), time: JOIN_DEADLINE_TIME };
+}
+
+/** Is `now` (Paris time) before the event's self-registration deadline? */
+export function isBeforeJoinDeadline(eventDate: string, now: Date): boolean {
+  const deadline = joinDeadline(eventDate);
+  return `${dateInTimeZone(now, EVENT_TIME_ZONE)}T${timeInTimeZone(now, EVENT_TIME_ZONE)}` < `${deadline.date}T${deadline.time}`;
+}
+
+/**
+ * Can a player still change their answer for this event? (Afterwards the leaders' data wins.)
+ * Always while no selection has run; once it ran (planned, not yet published), until Wednesday 22:00
+ * Paris time – the leaders see the late sign-ups and re-run the selection.
+ */
+export function isOpenForSelfRegistration(event: WeekEvent | undefined, now: Date): boolean {
+  if (!event) return false;
+  if (event.status === 'registration') return true;
+  return event.status === 'planned' && isBeforeJoinDeadline(event.date, now);
 }

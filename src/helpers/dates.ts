@@ -34,6 +34,13 @@ export function dateInTimeZone(now: Date, timeZone: string): string {
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
 
+/** Wall-clock time (HH:MM, 24h) of `now` in the given IANA time zone. */
+export function timeInTimeZone(now: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('hour')}:${get('minute')}`;
+}
+
 /** UTC-safe date arithmetic on yyyy-mm-dd strings. */
 export function addDays(isoDate: string, days: number): string {
   const [y, m, d] = isoDate.split('-').map(Number);

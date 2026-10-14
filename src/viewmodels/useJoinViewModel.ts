@@ -12,7 +12,7 @@ import { readHashParams } from './useNavigationViewModel';
 
 const ERROR_MESSAGES: Record<JoinErrorCode, string> = {
   bad_code: 'This join link or code is not valid (any more). Ask an R4 for the current link.',
-  closed: 'Registrations for this event are closed: the leaders have already planned it. Contact an R4 if something changed.',
+  closed: 'Registrations for this event are closed (sign-ups end Wednesday 10 PM (22h) Paris time). Contact an R4 if something changed.',
   invalid_member: 'This name is not in the active roster (any more). Use “I’m not in the list”.',
   invalid_power: 'This power looks wrong. Write it like 152.3M or 152300000.',
   invalid_choices: 'Choose “Not available”, “Play” or “Sub only” for each event.',
@@ -102,7 +102,8 @@ export function useJoinViewModel() {
           team: EVENT_SLOT_INFO[slot].team,
           timeLabel: EVENT_SLOT_INFO[slot].joinTimeLabel,
           dateLabel: e ? formatEventDate(e.date) : '',
-          open: e?.status === 'registration',
+          // Older servers do not send `open`: only events without a selection were open there.
+          open: e ? (e.open ?? e.status === 'registration') : false,
         };
       }),
     [roster],

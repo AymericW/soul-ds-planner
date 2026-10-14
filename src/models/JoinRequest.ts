@@ -38,6 +38,8 @@ export interface JoinOpenEvent {
   slot: EventSlot;
   date: string;
   status: EventStatus;
+  /** Players can still sign up (decided by the server: see isOpenForSelfRegistration). */
+  open?: boolean;
 }
 
 export interface JoinRoster {

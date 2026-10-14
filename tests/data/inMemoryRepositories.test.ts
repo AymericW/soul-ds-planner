@@ -125,17 +125,34 @@ describe('join gateway (mirrors the join_* database functions)', () => {
     expect((await repos.events.get(A))!.registrations.map((r) => r.memberId)).toEqual(['m1', 'm2']);
   });
 
-  it('rejects self-registration once an event left the registration phase (leader data wins)', async () => {
+  it('rejects self-registration once an event is closed (leader data wins)', async () => {
     const repos = await setup();
     await repos.join.getRoster(CODE);
     const a = (await repos.events.get(A))!;
-    await repos.events.save({ ...a, status: 'planned', registrations: [{ memberId: 'm1', source: 'manual' }] });
+    await repos.events.save({ ...a, status: 'locked', registrations: [{ memberId: 'm1', source: 'manual' }] });
+    expect((await repos.join.getRoster(CODE)).events.map((e) => e.open)).toEqual([false, true]);
     await expect(repos.join.submit(CODE, 'm1', 1e8, { A: 'sub', B: 'play' })).rejects.toMatchObject({ code: 'closed' });
     expect((await repos.events.get(B))!.registrations).toEqual([]);
     // "Not available" for the closed event is ignored; B is still open.
     await repos.join.submit(CODE, 'm1', 1e8, { A: 'none', B: 'play' });
     expect((await repos.events.get(A))!.registrations).toEqual([{ memberId: 'm1', source: 'manual' }]);
     expect((await repos.events.get(B))!.registrations.map((r) => r.memberId)).toEqual(['m1']);
+  });
+
+  it('keeps sign-ups open after the selection ran, until Wednesday 22:00 Paris time', async () => {
+    const repos = await setup();
+    await repos.join.getRoster(CODE);
+    const a = (await repos.events.get(A))!;
+    await repos.events.save({ ...a, status: 'planned', registrations: [{ memberId: 'm1', source: 'manual' }] });
+    // Wednesday 21:59 Paris (CEST, UTC+2).
+    clock = new Date('2026-10-14T19:59:00Z');
+    expect((await repos.join.getRoster(CODE)).events.map((e) => e.open)).toEqual([true, true]);
+    await repos.join.submit(CODE, 'm2', 3e8, { A: 'play', B: 'none' });
+    expect((await repos.events.get(A))!.registrations.map((r) => r.memberId)).toEqual(['m1', 'm2']);
+    // Wednesday 22:00 Paris: closed for the planned event, still open for the one without a selection.
+    clock = new Date('2026-10-14T20:00:00Z');
+    expect((await repos.join.getRoster(CODE)).events.map((e) => e.open)).toEqual([false, true]);
+    await expect(repos.join.submit(CODE, 'm2', 3e8, { A: 'sub', B: 'none' })).rejects.toMatchObject({ code: 'closed' });
   });
 
   it('rate-limits repeated submissions of one member', async () => {
