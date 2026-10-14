@@ -43,7 +43,7 @@ interface Deps {
 
 const copy = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
-/** Same behaviour as the join_* database functions (see supabase/migrations/0002_two_events_and_join.sql). */
+/** Same behaviour as the join_* database functions (see supabase/migrations/0002_two_events_and_join.sql and 0003). */
 export function createInMemoryJoinGateway(store: InMemoryStore, deps: Deps): JoinGateway {
   const settingsFor = (code: string): Settings => {
     const settings = mergeWithDefaultSettings(store.settings);
@@ -80,7 +80,7 @@ export function createInMemoryJoinGateway(store: InMemoryStore, deps: Deps): Joi
         .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
       const events = weekEvents()
         .filter((x) => x.event)
-        .map(({ event }) => ({ id: event!.id, slot: event!.slot, date: event!.date, status: event!.status }));
+        .map(({ event }) => ({ id: event!.id, slot: event!.slot, date: event!.date, status: event!.status, open: isOpenForSelfRegistration(event, deps.now()) }));
       return { members, events };
     },
 
@@ -107,14 +107,14 @@ export function createInMemoryJoinGateway(store: InMemoryStore, deps: Deps): Joi
       const targets = weekEvents();
       // All or nothing: a choice for an event that is no longer open rejects the whole submission.
       for (const { slot, event } of targets) {
-        if (choices[slot] !== 'none' && !isOpenForSelfRegistration(event)) throw new JoinError('closed');
+        if (choices[slot] !== 'none' && !isOpenForSelfRegistration(event, deps.now())) throw new JoinError('closed');
       }
       rateLimit('submit', memberId, JOIN_LIMITS.submitsPerMember, JOIN_LIMITS.submitWindowMinutes);
 
       const nowIso = deps.now().toISOString();
       const rounded = Math.round(power);
       for (const { slot, event } of targets) {
-        if (!event || !isOpenForSelfRegistration(event)) continue;
+        if (!event || !isOpenForSelfRegistration(event, deps.now())) continue;
         const next = applyJoinChoice(event, memberId, choices[slot], rounded, nowIso);
         if (next !== event) store.events.set(next.id, copy(next));
       }

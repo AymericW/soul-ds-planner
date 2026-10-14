@@ -101,6 +101,15 @@ The join page is **disabled until a code exists**.
 * The accepted power drop / rise for self-reported power (default −10% / +30%) are sliders
   in the same Settings card.
 
+## 2d. Sign-ups open until Wednesday 22:00 (0003)
+
+Dashboard → **SQL Editor → New query** → paste the whole of
+`supabase/migrations/0003_join_open_until_wednesday.sql` → **Run** (once, after 0002; not
+destructive). Before it, the join page refused sign-ups as soon as an R4 ran the selection.
+Now an event accepts sign-ups while it has no selection, and once planned (not locked) until
+Wednesday 22:00 Paris time before the Friday. The R4s then re-run the selection.
+`join_get_roster` also returns `open` per event so the join page shows the same state.
+
 ## 3. Lock down sign-up
 
 Dashboard → **Authentication → Sign In / Providers → Email**:

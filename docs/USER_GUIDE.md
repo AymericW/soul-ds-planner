@@ -54,8 +54,10 @@ the alliance chat. Players open it without an account, pick their name from the 
 enter their power and choose, per event, **Not available / Play / Sub only**. They appear
 in step 1 already ticked with a **Self-registered** badge, the time they sent it and the
 power they entered (in orange when their power change waits for your review). You can
-still untick them or fix their power (**Power** button). Self-registration for an event
-closes as soon as you run its selection. Players who are not in the roster can tap
+still untick them or fix their power (**Power** button). Self-registration stays open
+until **Wednesday 10 PM (22h) Paris time**, even after you ran the selection: late sign-ups
+show up as "Registrations changed since the selection" – run the selection again (or keep the
+plan and add them as substitutes). It closes for good once you lock (publish) the plan. Players who are not in the roster can tap
 **I'm not in the list**: their request lands in the **Requests** tab.
 
 ### Step 1 – Poll

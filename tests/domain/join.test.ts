@@ -6,6 +6,8 @@ import {
   choiceOfRegistration,
   evaluatePowerUpdate,
   generateJoinCode,
+  isOpenForSelfRegistration,
+  joinDeadline,
   joinCodeMatches,
   parseJoinChoices,
   validateJoinPower,
@@ -142,5 +144,30 @@ describe('unlisted join requests', () => {
     expect(suggestMembersForName('Iron Vangard', members)[0]!.member.id).toBe('a');
     expect(suggestMembersForName('Luna Stryke', members)[0]).toMatchObject({ member: { id: 'b' }, score: 1 });
     expect(suggestMembersForName('qqqq', members)).toEqual([]);
+  });
+});
+
+describe('self-registration window', () => {
+  const event = (status: 'registration' | 'planned' | 'locked' | 'finalised') => ({ ...createWeekEvent('2026-10-16', 'A', T), status });
+
+  it('ends on Wednesday 22:00 before the Friday', () => {
+    expect(joinDeadline('2026-10-16')).toEqual({ date: '2026-10-14', time: '22:00' });
+  });
+
+  it('is always open before the selection, open until the deadline once planned, closed when locked', () => {
+    const before = new Date('2026-10-14T19:59:00Z'); // Wed 21:59 Paris (CEST)
+    const after = new Date('2026-10-14T20:00:00Z'); // Wed 22:00 Paris
+    expect(isOpenForSelfRegistration(event('registration'), after)).toBe(true);
+    expect(isOpenForSelfRegistration(event('planned'), before)).toBe(true);
+    expect(isOpenForSelfRegistration(event('planned'), after)).toBe(false);
+    expect(isOpenForSelfRegistration(event('locked'), before)).toBe(false);
+    expect(isOpenForSelfRegistration(event('finalised'), before)).toBe(false);
+    expect(isOpenForSelfRegistration(undefined, before)).toBe(false);
+  });
+
+  it('uses Paris time in winter too (CET, UTC+1)', () => {
+    const planned = { ...createWeekEvent('2026-12-04', 'B', T), status: 'planned' as const };
+    expect(isOpenForSelfRegistration(planned, new Date('2026-12-02T20:59:00Z'))).toBe(true);
+    expect(isOpenForSelfRegistration(planned, new Date('2026-12-02T21:00:00Z'))).toBe(false);
   });
 });
