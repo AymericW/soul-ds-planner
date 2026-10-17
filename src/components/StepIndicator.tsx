@@ -10,6 +10,7 @@ interface StepIndicatorProps {
   onSelect: (id: number) => void;
 }
 
+/** Slim progress bar: one line per step, each line + label is a tap target to jump to that step. */
 export function StepIndicator({ steps, current, onSelect }: StepIndicatorProps) {
   return (
     <ol className="steps" aria-label="Weekly steps">
@@ -22,8 +23,10 @@ export function StepIndicator({ steps, current, onSelect }: StepIndicatorProps) 
             disabled={!s.enabled}
             onClick={() => onSelect(s.id)}
           >
-            <span className="steps__number">{s.id}</span>
-            <span className="steps__label">{s.label}</span>
+            <span className="steps__bar" aria-hidden="true" />
+            <span className="steps__label">
+              {s.id} {s.label}
+            </span>
           </button>
         </li>
       ))}

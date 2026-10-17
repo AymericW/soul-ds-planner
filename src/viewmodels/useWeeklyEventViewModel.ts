@@ -22,6 +22,9 @@ import {
   missingWeekEvents,
   openWeekKeys,
   otherEventsOfWeek,
+  isRegistrationStillOpen,
+  registrationCloseAt,
+  registrationCloseDate,
   upcomingEventDate,
   weekEventsByKey,
   weekKeyOf,
@@ -38,7 +41,7 @@ import { registrationCap, starterCount } from '@/domain/selection/runSelection';
 import { attendanceConflict, placementConflict } from '@/domain/selection/weekConflicts';
 import { selectWeek as planWeek } from '@/domain/selection/weekSelection';
 import { formatEventDate, toIsoDate, weekStart } from '@/helpers/dates';
-import { formatPower } from '@/helpers/format';
+import { formatDuration, formatPower } from '@/helpers/format';
 import type { NameCandidate, OcrMatchResult } from '@/helpers/nameMatching';
 import { isStarterSlot, type Slot } from '@/models/Assignment';
 import type { Member, MemberDraft, MemberRank } from '@/models/Member';
@@ -95,6 +98,8 @@ export interface EventTab {
   slot: EventSlot;
   team: string;
   timeLabel: string;
+  /** Start time, 24h Paris time ("22:00"). */
+  shortTime: string;
   status: EventStatus | null;
   registered: number;
 }
@@ -124,6 +129,12 @@ export function useWeeklyEventViewModel() {
   const otherEvents = useMemo(() => (event ? otherEventsOfWeek(events, event) : []), [events, event]);
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
   const [step, setStep] = useState<WizardStep>(1);
+  // Re-render every minute so time-based labels (registration countdown, attendance opening) stay current.
+  const [, setMinuteTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setMinuteTick((t) => t + 1), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const [stepEventId, setStepEventId] = useState<string | null>(null);
   const [pollOcrIds, setPollOcrIds] = useState<Set<string>>(new Set());
   const [attendanceOcrIds, setAttendanceOcrIds] = useState<Set<string>>(new Set());
@@ -446,6 +457,12 @@ export function useWeeklyEventViewModel() {
 
   /** Opens attendance: freezes the lineup. Only offered once the event day has arrived (or when forced). */
   const eventOver = event ? isEventOver(event, toIsoDate(now())) : false;
+  /** Running the selection before Wednesday 10 PM (Paris) cuts off players who could still register. */
+  const registrationStillOpen = event ? isRegistrationStillOpen(event.date, now()) : false;
+  const registrationCloseLabel = event ? `${formatEventDate(registrationCloseDate(event.date))}, 10 PM (Paris time)` : '';
+  /** "Wed 22:00" – the short form for the join-link strip. */
+  const registrationCloseShort = event ? `${formatEventDate(registrationCloseDate(event.date)).split(' ')[0]} 22:00` : '';
+  const registrationClosesIn = event && registrationStillOpen ? formatDuration(registrationCloseAt(event.date).getTime() - now().getTime()) : '';
   const startAttendance = useCallback(async () => {
     if (!event || event.status === 'registration') return;
     await mutateEvent((e) => lockEvent(e, nowIso()));
@@ -659,6 +676,7 @@ export function useWeeklyEventViewModel() {
         slot: s,
         team: EVENT_SLOT_INFO[s].team,
         timeLabel: EVENT_SLOT_INFO[s].timeLabel,
+        shortTime: `${EVENT_SLOT_INFO[s].startHour}:00`,
         status: weekEvents[s]?.status ?? null,
         registered: weekEvents[s]?.registrations.length ?? 0,
       })),
@@ -734,6 +752,10 @@ export function useWeeklyEventViewModel() {
     updateMemberPower,
     runWeeklySelection,
     canRunBoth,
+    registrationStillOpen,
+    registrationCloseLabel,
+    registrationCloseShort,
+    registrationClosesIn,
     // step 2
     board,
     drift,

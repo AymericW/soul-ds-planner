@@ -1,5 +1,5 @@
-import { EVENT_SLOT_INFO, EVENT_TIME_ZONE, EVENT_WEEKDAY } from '@/constants/events';
-import { dateInTimeZone, defaultEventLabel, nextWeekdayOnOrAfter, weekStart } from '@/helpers/dates';
+import { EVENT_SLOT_INFO, EVENT_TIME_ZONE, EVENT_WEEKDAY, REGISTRATION_CLOSE_DAYS_BEFORE, REGISTRATION_CLOSE_HOUR } from '@/constants/events';
+import { addDays, dateInTimeZone, defaultEventLabel, nextWeekdayOnOrAfter, weekStart, zonedTimeToUtc } from '@/helpers/dates';
 import { EVENT_SLOTS, type EventSlot, type WeekEvent } from '@/models/WeekEvent';
 import { compareEventsChronologically } from '@/domain/history/eventHistory';
 
@@ -12,6 +12,21 @@ export type WeekEvents = Partial<Record<EventSlot, WeekEvent>>;
  */
 export function upcomingEventDate(now: Date): string {
   return nextWeekdayOnOrAfter(dateInTimeZone(now, EVENT_TIME_ZONE), EVENT_WEEKDAY);
+}
+
+/** Date (yyyy-mm-dd, Paris time) on which registrations for the event close, at REGISTRATION_CLOSE_HOUR. */
+export function registrationCloseDate(eventDate: string): string {
+  return addDays(eventDate, -REGISTRATION_CLOSE_DAYS_BEFORE);
+}
+
+/** Instant at which registrations for the event close (Wednesday 10 PM Paris time). */
+export function registrationCloseAt(eventDate: string): Date {
+  return zonedTimeToUtc(registrationCloseDate(eventDate), REGISTRATION_CLOSE_HOUR, EVENT_TIME_ZONE);
+}
+
+/** True while registrations for the event are still open (before Wednesday 10 PM Paris time). */
+export function isRegistrationStillOpen(eventDate: string, now: Date): boolean {
+  return now.getTime() < registrationCloseAt(eventDate).getTime();
 }
 
 export function weekEventId(date: string, slot: EventSlot): string {

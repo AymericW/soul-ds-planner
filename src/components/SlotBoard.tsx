@@ -16,8 +16,8 @@ interface SlotBoardProps {
 }
 
 const SECTIONS: ReadonlyArray<{ slot: Slot; title: string; hint: string }> = [
-  { slot: 'core', title: 'Core', hint: 'Best relative score (power + activity)' },
-  { slot: 'rotation', title: 'Rotation', hint: 'Fair turn for players who waited longest' },
+  { slot: 'core', title: 'Core starters', hint: 'Best relative score (power + activity)' },
+  { slot: 'rotation', title: 'Rotation starters', hint: 'Fair turn for players who waited longest' },
   { slot: 'substitute', title: 'Substitutes', hint: 'Called in this order if a starter is missing' },
   { slot: 'notSelected', title: 'Not selected', hint: 'No place left, inactive or suspended' },
 ];
@@ -31,11 +31,10 @@ export function SlotBoard({ board, capacity, onSelectPlayer, selectedId }: SlotB
         const cap = slot === 'notSelected' ? null : capacity[slot];
         return (
           <section key={slot} className={`slot slot--${slot}`} aria-label={title}>
-            <header className="slot__header">
+            <header className="slot__header" title={hint}>
               <h3 className="slot__title">{title}</h3>
               <span className="slot__count">{cap === null ? players.length : `${players.length}/${cap}`}</span>
             </header>
-            <p className="slot__hint muted small">{hint}</p>
             {players.length === 0 ? (
               <p className="muted small">Nobody.</p>
             ) : (

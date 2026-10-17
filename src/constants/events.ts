@@ -4,6 +4,10 @@ import type { EventSlot } from '@/models/WeekEvent';
 export const EVENT_WEEKDAY = 5;
 export const EVENT_TIME_ZONE = 'Europe/Paris';
 
+/** Registrations close on the Wednesday before the event (2 days before Friday) at 10 PM, Paris time. */
+export const REGISTRATION_CLOSE_DAYS_BEFORE = 2;
+export const REGISTRATION_CLOSE_HOUR = 22;
+
 export interface EventSlotInfo {
   team: string;
   /** Start time shown to leaders. */

@@ -54,8 +54,8 @@ the alliance chat. Players open it without an account, pick their name from the 
 enter their power and choose, per event, **Not available / Play / Sub only**. They appear
 in step 1 already ticked with a **Self-registered** badge, the time they sent it and the
 power they entered (in orange when their power change waits for your review). You can
-still untick them or fix their power (**Power** button). Self-registration for an event
-closes as soon as you run its selection. Players who are not in the roster can tap
+still untick them or fix their power (tap their name → **Edit power**). Self-registration for an event
+closes as soon as you run its selection. Step 1 shows a countdown to the close (Wednesday 10 PM Paris time). Players who are not in the roster can tap
 **I'm not in the list**: their request lands in the **Requests** tab.
 
 ### Step 1 – Poll
@@ -63,17 +63,21 @@ closes as soon as you run its selection. Players who are not in the roster can t
 1. In the game, open the Desert Storm poll and take a screenshot of the list of players
    who voted **Yes** (scroll and take several screenshots if the list is long – import
    them one after another, ticks add up).
-2. Tap **Choose screenshot**. The app reads the names on your phone (OCR) and ticks the
-   matching members. The screenshot stays visible above the list so you can compare.
-3. Check the checklist and fix anything: tick forgotten voters, untick mistakes. Use the
-   search box and the *Registered / Not registered* filter.
+2. Tap the **camera** button next to the search box, then **Choose screenshot**. The app reads
+   the names on your phone (OCR) and ticks the matching members. The screenshot stays visible
+   above the list so you can compare.
+3. Check the list and fix anything: tick forgotten voters, untick mistakes. Tapping a member
+   opens a sheet that asks for confirmation (so a fat-finger tap changes nothing); the same
+   sheet has **Sub only** and **Edit power**. Use the search box and the *Registered / Not yet* filter.
 4. **Not recognised** chips are names the app could not match. Tap one and choose the
    member: the app **remembers this spelling** and will recognise it next time. Tap ✕ for
    lines that are not players.
-5. Someone new? **+ New member** adds them to the roster and registers them.
-6. Tap **Run selection** (for the event shown). While the other event has no plan yet,
-   both are balanced together but only this one is saved. **Run selection for Team A and
-   Team B together** recomputes and saves both at once.
+5. Someone new? The **+** button next to the search box adds them to the roster and registers them.
+6. Tap **Run selection** in the bar at the bottom (for the event shown). Before Wednesday
+   10 PM (Paris time) the app warns that registrations are still open and you must type
+   **EARLY** to run it anyway. While the other event has no plan yet, both are balanced
+   together but only this one is saved. **Run Team A and Team B together** (under the list)
+   recomputes and saves both at once.
 
 > The checklist always works, even without OCR (offline, old phone, bad screenshot).
 
@@ -96,7 +100,10 @@ the last substitutes) or to re-run. Rules are explained in `docs/ALGORITHM.md`.
 
 ### Step 3 - Share
 
-**Copy plan text** and paste it in the alliance chat. The poll and the lineup stay
+The **in-game sign-up list** shows the whole lineup – core, rotation and substitutes,
+numbered – so you can sign everyone up in the game at a glance. **Copy plan** copies the
+plan text for the alliance chat (tap *Plan text for the alliance chat* to read it). You can
+jump between steps by tapping the step bar at the top. The poll and the lineup stay
 editable until the event: create the week on Monday, tweak starters, rotation and subs
 until Friday. Attendance opens on the event date (an "open anyway" link covers
 early/late cases).
