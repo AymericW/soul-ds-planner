@@ -452,6 +452,24 @@ export function useWeeklyEventViewModel() {
     setStep(4);
   }, [event, mutateEvent, nowIso]);
 
+  /** Opening the attendance step on a planned event starts attendance (locks the lineup) first. */
+  const goToStep = useCallback(
+    (next: WizardStep) => {
+      if (next === 4 && event?.status === 'planned') void startAttendance();
+      else setStep(next);
+    },
+    [event, startAttendance],
+  );
+
+  /** Attendance changes on an event that is over but still planned lock it in the same save. */
+  const forAttendance = useCallback(
+    (e: WeekEvent): WeekEvent | null => {
+      if (e.status === 'planned' && isEventOver(e, toIsoDate(now()))) return lockEvent(e, nowIso());
+      return e.status === 'locked' ? e : null;
+    },
+    [now, nowIso],
+  );
+
   /** Back to planning (e.g. attendance was opened too early); the lineup becomes editable again. */
   const unlockPlan = useCallback(async () => {
     if (!event) return;
@@ -484,9 +502,12 @@ export function useWeeklyEventViewModel() {
       if (blocked.length) {
         notify(`Not marked (already played the other event this week): ${blocked.map((id) => memberById.get(id)?.name ?? id).join(', ')}.`, 'warning');
       }
-      void mutateEvent((e) => (e.status === 'locked' ? markAttendedMany(e, allowed, nowIso()) : null));
+      void mutateEvent((latest) => {
+        const e = forAttendance(latest);
+        return e ? markAttendedMany(e, allowed, nowIso()) : null;
+      });
     },
-    [mutateEvent, nowIso, otherEvents, memberById, notify],
+    [mutateEvent, nowIso, otherEvents, memberById, notify, forAttendance],
   );
   const attendanceOcr = useScreenshotOcr(lineupCandidates, onAttendanceMatched);
 
@@ -545,28 +566,30 @@ export function useWeeklyEventViewModel() {
 
   const toggleAttended = useCallback(
     async (memberId: string) => {
-      if (event?.status !== 'locked') return;
+      if (!event || !forAttendance(event)) return;
       const willAttend = !(event.attendance.find((a) => a.memberId === memberId)?.attended ?? false);
       const conflict = willAttend ? attendanceConflict(memberId, otherEvents) : null;
       if (conflict) {
         notify(`${memberById.get(memberId)?.name ?? 'This player'}: ${conflict}`, 'error');
         return;
       }
-      await mutateEvent((e) =>
-        e.status === 'locked'
-          ? setAttended(e, memberId, !(e.attendance.find((a) => a.memberId === memberId)?.attended ?? false), nowIso())
-          : null,
-      );
+      await mutateEvent((latest) => {
+        const e = forAttendance(latest);
+        return e ? setAttended(e, memberId, !(e.attendance.find((a) => a.memberId === memberId)?.attended ?? false), nowIso()) : null;
+      });
     },
-    [event, otherEvents, memberById, mutateEvent, nowIso, notify],
+    [event, otherEvents, memberById, mutateEvent, nowIso, notify, forAttendance],
   );
 
   const setMemberNotified = useCallback(
     async (memberId: string, notified: boolean) => {
-      if (event?.status !== 'locked') return;
-      await mutateEvent((e) => setNotified(e, memberId, notified, nowIso()));
+      if (!event || !forAttendance(event)) return;
+      await mutateEvent((latest) => {
+        const e = forAttendance(latest);
+        return e ? setNotified(e, memberId, notified, nowIso()) : null;
+      });
     },
-    [event, mutateEvent, nowIso],
+    [event, mutateEvent, nowIso, forAttendance],
   );
 
   const penaltyPreview = useMemo(() => attendanceItems.filter((i) => i.willBeSuspended), [attendanceItems]);
@@ -713,7 +736,7 @@ export function useWeeklyEventViewModel() {
     cap,
     starters,
     step,
-    setStep,
+    setStep: goToStep,
     unlockedSteps,
     startNewWeek,
     discardEvent,
