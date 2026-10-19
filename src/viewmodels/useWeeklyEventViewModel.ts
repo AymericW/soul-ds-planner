@@ -733,6 +733,10 @@ export function useWeeklyEventViewModel() {
     const ok = await copyText(joinLink);
     notify(ok ? 'Join link copied – share it in the alliance chat.' : 'Could not copy automatically.', ok ? 'success' : 'warning');
   }, [joinLink, notify]);
+  /** Leaders sign themselves up through the same join page, inside the app (it offers a way back). */
+  const openJoinPage = useCallback(() => {
+    if (settings.joinCode) window.location.hash = `/join?code=${encodeURIComponent(settings.joinCode)}`;
+  }, [settings.joinCode]);
 
   return {
     loading: data.loading,
@@ -760,6 +764,7 @@ export function useWeeklyEventViewModel() {
     discardEvent,
     joinLink,
     copyJoinLink,
+    openJoinPage,
     // step 1
     pollOcr,
     tryPollSample,

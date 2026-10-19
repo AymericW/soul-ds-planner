@@ -1704,6 +1704,13 @@ button.player-card:hover,
   color: var(--color-success);
 }
 
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
 .join-strip__text {
   flex: 1;
   min-width: 0;

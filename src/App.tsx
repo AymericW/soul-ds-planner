@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { BottomNav } from '@/components/BottomNav';
+import { BackIcon } from '@/components/Icons';
 import { ToastHost } from '@/components/ToastHost';
 import { ROUTES } from '@/constants/routes';
 import { AccessPendingScreen, BackendErrorScreen, LoginScreen } from '@/screens/AuthScreens';
@@ -45,7 +46,14 @@ export function App() {
       </header>
       <main className="app-main">
         {isJoin ? (
-          <JoinScreen />
+          <>
+            {status === 'ready' && (
+              <button type="button" className="button button--ghost button--small back-link" onClick={() => navigate(ROUTES.event)}>
+                <BackIcon size={18} /> Back to the app
+              </button>
+            )}
+            <JoinScreen />
+          </>
         ) : (
           <>
             {status === 'loading' && <p className="muted">Loading…</p>}

@@ -212,6 +212,11 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
             )}
             {!vm.joinLink && <span className="muted"> · set a join code in Settings to share a join link</span>}
           </span>
+          {vm.joinLink && early && (
+            <button type="button" className="button button--ghost button--small" onClick={vm.openJoinPage}>
+              Sign up myself
+            </button>
+          )}
           {vm.joinLink && (
             <button type="button" className="icon-tile icon-tile--small" aria-label="Copy join link" onClick={() => void vm.copyJoinLink()}>
               <LinkIcon size={18} />

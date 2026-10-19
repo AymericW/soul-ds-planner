@@ -64,3 +64,9 @@ export const WarningIcon = ({ size }: { size?: number }) => (
     <path d="M12 10v5M12 18h.01" />
   </Icon>
 );
+
+export const BackIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M19 12H5M11 6l-6 6 6 6" />
+  </Icon>
+);
