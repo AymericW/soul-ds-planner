@@ -41,6 +41,32 @@ export function timeInTimeZone(now: Date, timeZone: string): string {
   return `${get('hour')}:${get('minute')}`;
 }
 
+/** Wall-clock time of `now` in the given IANA time zone as "yyyy-mm-ddThh:mm" (sortable as a string). */
+export function dateTimeInTimeZone(now: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(now);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
+}
+
+/** The instant at which the wall clock in `timeZone` shows `hour`:00 on `isoDate`. */
+export function zonedTimeToUtc(isoDate: string, hour: number, timeZone: string): Date {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const guess = Date.UTC(y!, m! - 1, d!, hour);
+  const wall = dateTimeInTimeZone(new Date(guess), timeZone);
+  const [wy, wm, wd] = wall.slice(0, 10).split('-').map(Number);
+  const [wh, wmin] = wall.slice(11).split(':').map(Number);
+  const offset = Date.UTC(wy!, wm! - 1, wd!, wh!, wmin!) - guess;
+  return new Date(guess - offset);
+}
+
 /** UTC-safe date arithmetic on yyyy-mm-dd strings. */
 export function addDays(isoDate: string, days: number): string {
   const [y, m, d] = isoDate.split('-').map(Number);

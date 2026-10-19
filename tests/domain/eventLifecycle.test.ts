@@ -11,7 +11,16 @@ import {
   setRegistered,
   syncPlanWithRegistrations,
 } from '@/domain/events/eventLifecycle';
-import { createWeekEvent, lastFinalisedWeekKey, missingWeekEvents, openWeekKeys, upcomingEventDate, weekEventId, weekEventsByKey, weekKeyOf } from '@/domain/events/weekEvents';
+import {
+  createWeekEvent,
+  isRegistrationStillOpen,
+  registrationCloseDate,
+  lastFinalisedWeekKey, missingWeekEvents, openWeekKeys,
+  upcomingEventDate,
+  weekEventId,
+  weekEventsByKey,
+  weekKeyOf,
+} from '@/domain/events/weekEvents';
 import { buildPlanText } from '@/domain/selection/planText';
 import { makeFinalisedEvent, makeMember, makeSettings } from '../fixtures';
 
@@ -134,5 +143,22 @@ describe('two events per week (Team A / Team B)', () => {
       ['c', 'notSelected'],
     ]);
     expect(synced.assignments.find((a) => a.memberId === 'c')!.reason).toContain('Starter in Team B');
+  });
+});
+
+describe('registration close (Wednesday 10 PM Paris time)', () => {
+  it('closes on the Wednesday before the Friday event', () => {
+    expect(registrationCloseDate('2026-10-16')).toBe('2026-10-14');
+  });
+
+  it('is open before Wednesday 22:00 Paris time and closed from then on (summer time, UTC+2)', () => {
+    expect(isRegistrationStillOpen('2026-10-16', new Date('2026-10-14T19:59:00Z'))).toBe(true);
+    expect(isRegistrationStillOpen('2026-10-16', new Date('2026-10-14T20:00:00Z'))).toBe(false);
+    expect(isRegistrationStillOpen('2026-10-16', new Date('2026-10-15T08:00:00Z'))).toBe(false);
+  });
+
+  it('follows Paris winter time (UTC+1)', () => {
+    expect(isRegistrationStillOpen('2026-12-04', new Date('2026-12-02T20:59:00Z'))).toBe(true);
+    expect(isRegistrationStillOpen('2026-12-04', new Date('2026-12-02T21:00:00Z'))).toBe(false);
   });
 });

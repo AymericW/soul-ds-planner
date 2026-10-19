@@ -12,6 +12,10 @@ export const EVENT_TIME_ZONE = 'Europe/Paris';
 export const JOIN_DEADLINE_DAYS_BEFORE = 2;
 export const JOIN_DEADLINE_TIME = '22:00';
 
+/** Same deadline, in the form the weekly event screen countdown uses. */
+export const REGISTRATION_CLOSE_DAYS_BEFORE = JOIN_DEADLINE_DAYS_BEFORE;
+export const REGISTRATION_CLOSE_HOUR = Number(JOIN_DEADLINE_TIME.slice(0, 2));
+
 export interface EventSlotInfo {
   team: string;
   /** Start time shown to leaders. */

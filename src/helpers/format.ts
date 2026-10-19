@@ -49,6 +49,17 @@ export function pluralise(count: number, singular: string, plural = `${singular}
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+/** Rough countdown: "2 d 5 h", "5 h 12 m", "12 m" (never negative). */
+export function formatDuration(ms: number): string {
+  const minutes = Math.max(0, Math.floor(ms / 60_000));
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  const mins = minutes % 60;
+  if (days > 0) return `${days} d ${hours} h`;
+  if (hours > 0) return `${hours} h ${mins} m`;
+  return `${mins} m`;
+}
+
 /** "0 weeks ago" reads badly; 0 => "last week". */
 export function formatWeeksAgo(weeksAgo: number | null): string {
   if (weeksAgo === null) return 'never';
