@@ -27,6 +27,6 @@ export interface EventSlotInfo {
 }
 
 export const EVENT_SLOT_INFO: Readonly<Record<EventSlot, EventSlotInfo>> = Object.freeze({
-  A: { team: 'Team A', timeLabel: '10 PM (Paris time)', joinTimeLabel: '10 PM (22h) Paris time', startHour: 22 },
-  B: { team: 'Team B', timeLabel: '1 PM (Paris time)', joinTimeLabel: '1 PM (13h) Paris time', startHour: 13 },
+  A: { team: 'Team A', timeLabel: '9 PM (Paris time)', joinTimeLabel: '9 PM (21h) Paris time', startHour: 21 },
+  B: { team: 'Team B', timeLabel: '12 PM (Paris time)', joinTimeLabel: '12 PM (12h) Paris time', startHour: 12 },
 });

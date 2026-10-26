@@ -1,8 +1,8 @@
 # SOUL DS Registration System
 
 An installable web app (PWA) for the **SOUL** alliance to run the two weekly
-**Desert Storm** events in Last War – **Team A** (Friday 10 PM Paris time) and **Team B**
-(Friday 1 PM): collect registrations from a poll screenshot or a public join link,
+**Desert Storm** events in Last War – **Team A** (Friday 9 PM Paris time) and **Team B**
+(Friday 12 PM): collect registrations from a poll screenshot or a public join link,
 pick fair lineups (a player plays at most one event per week), publish them, record
 attendance and apply no-show penalties.
 Up to ~100 members, English UI, navy & gold theme. Fan-made tool – no game art or assets.

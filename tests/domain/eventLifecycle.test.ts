@@ -105,7 +105,7 @@ describe('event lifecycle', () => {
       T,
     );
     const text = buildPlanText(e, [makeMember({ id: 'a', name: 'Alpha' }), makeMember({ id: 'b', name: 'Bravo' })]);
-    expect(text).toContain('Desert Storm Team A – Mon 5 Oct 2026, 10 PM (Paris time)');
+    expect(text).toContain('Desert Storm Team A – Mon 5 Oct 2026, 9 PM (Paris time)');
     expect(text).toContain('CORE (1): Alpha');
     expect(text).toContain('SUBSTITUTES (1, in call-in order): 1. Bravo');
   });

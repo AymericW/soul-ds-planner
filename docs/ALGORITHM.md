@@ -19,8 +19,8 @@ Given the same roster, history and settings, the result is always the same.
 
 ## 0. Two events every Friday
 
-Every Friday (Paris time) has **two independent events**: **Team A** at 10 PM and
-**Team B** at 1 PM. Each has its own registrations, lineup, attendance and finalisation
+Every Friday (Paris time) has **two independent events**: **Team A** at 9 PM and
+**Team B** at 12 PM. Each has its own registrations, lineup, attendance and finalisation
 (`WeekEvent.slot = 'A' | 'B'`, id `YYYY-MM-DD-A` / `YYYY-MM-DD-B`).
 
 * Both events of the **upcoming Friday** are created automatically – today if today is a

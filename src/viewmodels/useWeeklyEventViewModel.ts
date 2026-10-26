@@ -98,7 +98,7 @@ export interface EventTab {
   slot: EventSlot;
   team: string;
   timeLabel: string;
-  /** Start time, 24h Paris time ("22:00"). */
+  /** Start time, 24h Paris time ("21:00"). */
   shortTime: string;
   status: EventStatus | null;
   registered: number;

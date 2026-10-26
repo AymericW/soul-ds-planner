@@ -154,7 +154,7 @@ describe('penalties with two events per week', () => {
 
   it('counts suspensions down once per week: the second event of the week does not count again', () => {
     const old = [makeSuspension({ id: 'old', memberId: 'x', remainingEvents: 2 })];
-    // Team B (1 PM) is finalised first: countdown 2 -> 1, and b no-shows.
+    // Team B (12 PM) is finalised first: countdown 2 -> 1, and b no-shows.
     const b = inSlot(lockedEvent('w', '2026-03-06', { b: 'core' }), 'B');
     const resB = finaliseEvent({ event: b, attendance: [], suspensions: old, settings, nowIso: 't1', newId, sameWeekEvents: [] });
     expect(remainingSuspension('x', resB.suspensions)).toBe(1);

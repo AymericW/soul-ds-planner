@@ -3,7 +3,7 @@
 The app has five tabs: **This week**, **Roster**, **Requests**, **History**, **Settings**.
 Everything is saved automatically and shared by all R4s.
 
-**Two events every Friday:** **Team A** (10 PM Paris time) and **Team B** (1 PM). They are
+**Two events every Friday:** **Team A** (9 PM Paris time) and **Team B** (12 PM). They are
 separate teams with their own poll, lineup and attendance. A player may register for both
 to raise their chance to play, but plays in **at most one** of them per week – the app
 makes sure of it.

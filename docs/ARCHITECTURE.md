@@ -72,7 +72,7 @@ scripts/       generate-icons.mjs, check-architecture.mjs
 
 ## Data model in one paragraph
 
-Every Friday has two `WeekEvent`s, `slot` **A** (10 PM) and **B** (1 PM), with
+Every Friday has two `WeekEvent`s, `slot` **A** (9 PM) and **B** (12 PM), with
 deterministic ids `YYYY-MM-DD-A` / `-B`, created automatically for the upcoming Friday by
 `ensureWeekEvents()` (database function `ensure_week_events`). Each moves independently
 through `registration → planned → locked → finalised`.
