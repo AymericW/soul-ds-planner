@@ -20,8 +20,8 @@ interface EventRow extends Row<WeekEvent> {
 /** Postgres serialization failure raised by save_event / finalise_event when the version moved on. */
 const CONFLICT_CODE = '40001';
 const SETTINGS_ID = 'app';
-/** PostgREST returns at most 1000 rows by default; far above one alliance's roster/history. */
-const MAX_ROWS = 1000;
+/** PostgREST returns at most 1000 rows per request; lists are read page by page so nothing is cut off. */
+const PAGE_SIZE = 1000;
 
 interface BackendError {
   code?: string;
@@ -32,6 +32,20 @@ function raise(error: BackendError | null): void {
   if (!error) return;
   if (error.code === CONFLICT_CODE) throw new ConflictError();
   throw new Error(error.message);
+}
+
+/** Reads every row of a query, one page (ordered by id, so pages are stable) at a time. */
+async function selectAll<R>(
+  page: (from: number, to: number) => PromiseLike<{ data: unknown; error: BackendError | null }>,
+): Promise<R[]> {
+  const rows: R[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await page(from, from + PAGE_SIZE - 1);
+    raise(error);
+    const batch = (data ?? []) as R[];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) return rows;
+  }
 }
 
 /** Plain JSON, free of proxies/undefined values, as the database stores it. */
@@ -84,9 +98,8 @@ function createJoinGateway(client: SupabaseClient): JoinGateway {
 function documentTable<T extends { id: string }>(client: SupabaseClient, table: DocTable) {
   return {
     async list(): Promise<T[]> {
-      const { data, error } = await client.from(table).select('id, data').limit(MAX_ROWS);
-      raise(error);
-      return ((data ?? []) as Row<T>[]).map((r) => r.data);
+      const rows = await selectAll<Row<T>>((from, to) => client.from(table).select('id, data').order('id').range(from, to));
+      return rows.map((r) => r.data);
     },
     async get(id: string): Promise<T | undefined> {
       const { data, error } = await client.from(table).select('id, data').eq('id', id).maybeSingle();
@@ -126,9 +139,8 @@ export function createSupabaseRepositories(client: SupabaseClient): Repositories
 
   const events: Repositories['events'] = {
     async list() {
-      const { data, error } = await client.from('events').select('id, data, version').limit(MAX_ROWS);
-      raise(error);
-      return ((data ?? []) as EventRow[]).map((r) => {
+      const rows = await selectAll<EventRow>((from, to) => client.from('events').select('id, data, version').order('id').range(from, to));
+      return rows.map((r) => {
         versions.set(r.id, r.version);
         return r.data;
       });

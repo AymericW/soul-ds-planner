@@ -112,6 +112,8 @@ function initialStep(event: WeekEvent | undefined): WizardStep {
 
 const toCandidate = (m: Member): NameCandidate => ({ id: m.id, name: m.name, aliases: m.aliases });
 
+const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : 'unknown error');
+
 export function useWeeklyEventViewModel() {
   const { repos, now, newId } = useAppServices();
   const { notify } = useToasts();
@@ -147,7 +149,7 @@ export function useWeeklyEventViewModel() {
     repos.events
       .ensureWeekEvents()
       .then(reload)
-      .catch((e: unknown) => notify(`Could not create this week's events: ${e instanceof Error ? e.message : 'unknown error'}`, 'error'));
+      .catch((e: unknown) => notify(`Could not create this week's events: ${errorMessage(e)}`, 'error'));
   }, [repos, reload, notify]);
 
   // Jump to the right step when an event is opened (or after reload of a different event).
@@ -193,7 +195,7 @@ export function useWeeklyEventViewModel() {
           notify(
             e instanceof ConflictError
               ? 'Someone else changed this event at the same moment. The latest version was loaded – please redo your last change.'
-              : `Could not save: ${e instanceof Error ? e.message : 'unknown error'}`,
+              : `Could not save: ${errorMessage(e)}`,
             'error',
           );
         })
@@ -217,7 +219,13 @@ export function useWeeklyEventViewModel() {
   const startNewWeek = useCallback(
     async (date: string) => {
       const created = missingWeekEvents(events, date, nowIso());
-      for (const e of created) await repos.events.save(e);
+      try {
+        for (const e of created) await repos.events.save(e);
+      } catch (e) {
+        notify(`Could not create the events: ${errorMessage(e)}`, 'error');
+        await reload();
+        return;
+      }
       await reload();
       setChosenWeek(weekStart(date));
       notify(
@@ -230,7 +238,12 @@ export function useWeeklyEventViewModel() {
 
   const discardEvent = useCallback(async () => {
     if (!event) return;
-    await repos.events.delete(event.id);
+    try {
+      await repos.events.delete(event.id);
+    } catch (e) {
+      notify(`Could not delete the event: ${errorMessage(e)}`, 'error');
+      return;
+    }
     await reload();
     notify(`${EVENT_SLOT_INFO[event.slot].team} of ${formatEventDate(event.date)} was deleted.`, 'info');
   }, [event, repos, reload, notify]);
@@ -310,7 +323,12 @@ export function useWeeklyEventViewModel() {
       const errors = validateMemberDraft(draft, members);
       if (Object.keys(errors).length) return errors;
       const member = createMember(draft, newId(), nowIso());
-      await repos.members.save(member);
+      try {
+        await repos.members.save(member);
+      } catch (e) {
+        // Shown in the form, which stays open so nothing typed is lost.
+        return { name: `Could not save: ${errorMessage(e)}` };
+      }
       if (event && isEditable(event)) await mutateEvent((e) => setRegistered(e, member.id, true, 'manual', nowIso()));
       else await reload();
       notify(`${member.name} added to the roster and registered.`, 'success');
@@ -326,9 +344,15 @@ export function useWeeklyEventViewModel() {
       if (!member || !(power >= 0) || power === member.power) return;
       const iso = nowIso();
       const updated = { ...member, power: Math.round(power), updatedAt: iso };
-      await repos.members.save(updated);
-      const change = leaderPowerChange(member, updated, newId(), iso);
-      if (change) await repos.powerChanges.saveMany([change]);
+      try {
+        await repos.members.save(updated);
+        const change = leaderPowerChange(member, updated, newId(), iso);
+        if (change) await repos.powerChanges.saveMany([change]);
+      } catch (e) {
+        notify(`Could not save ${member.name}'s power: ${errorMessage(e)}`, 'error');
+        await reload();
+        return;
+      }
       await reload();
       notify(`${member.name}: power set to ${formatPower(updated.power)}.`, 'success');
     },
@@ -549,18 +573,26 @@ export function useWeeklyEventViewModel() {
         }
       }
       const updated = addAlias(member, guess, nowIso());
-      if (updated !== member) await repos.members.save(updated);
+      try {
+        if (updated !== member) await repos.members.save(updated);
+      } catch (e) {
+        notify(`Could not remember “${guess}” for ${member.name}: ${errorMessage(e)}`, 'error');
+        return;
+      }
       if (target === 'poll') {
         pollOcr.dismissUnmatched(guess);
         if (isEditable(event)) await mutateEvent((e) => setRegistered(e, memberId, true, 'ocr', nowIso()));
         else await reload();
       } else {
         attendanceOcr.dismissUnmatched(guess);
-        await mutateEvent((e) => markAttendedMany(e, [memberId], nowIso()));
+        await mutateEvent((latest) => {
+          const e = forAttendance(latest);
+          return e ? markAttendedMany(e, [memberId], nowIso()) : null;
+        });
       }
       notify(`“${guess}” will be recognised as ${member.name} from now on.`, 'success');
     },
-    [memberById, event, otherEvents, nowIso, repos, mutateEvent, reload, notify, pollOcr, attendanceOcr],
+    [memberById, event, otherEvents, nowIso, repos, mutateEvent, reload, notify, pollOcr, attendanceOcr, forAttendance],
   );
 
   const attendanceItems = useMemo<AttendanceItem[]>(() => {
@@ -637,7 +669,7 @@ export function useWeeklyEventViewModel() {
       notify(
         e instanceof ConflictError
           ? 'Someone else changed this event (or finalised the other event of the week) meanwhile. Review the latest data and finalise again.'
-          : `Could not finalise: ${e instanceof Error ? e.message : 'unknown error'}`,
+          : `Could not finalise: ${errorMessage(e)}`,
         'error',
       );
       return;
