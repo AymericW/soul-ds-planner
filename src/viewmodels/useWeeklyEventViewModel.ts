@@ -437,6 +437,10 @@ export function useWeeklyEventViewModel() {
 
   const drift = useMemo(() => (event ? registrationDrift(event) : { lateAdds: [], withdrawn: [] }), [event]);
   const hasOverrides = Boolean(event?.assignments.some((a) => a.overridden));
+  /** Manual moves in this event or in the other editable event of the week (both are lost when both are re-planned). */
+  const weekHasOverrides = hasOverrides || otherEditable.some((o) => o.assignments.some((a) => a.overridden));
+  /** Team A and Team B are planned together by default, so R4s cannot produce overlapping lineups by running them one at a time. */
+  const defaultScope: 'this' | 'both' = canRunBoth ? 'both' : 'this';
 
   /** Manual moves are checked against the other event of the week in the domain layer. */
   const movePlayer = useCallback(
@@ -820,6 +824,8 @@ export function useWeeklyEventViewModel() {
     board,
     drift,
     hasOverrides,
+    weekHasOverrides,
+    defaultScope,
     movePlayer,
     swapPlayers,
     keepPlanWithLateChanges,

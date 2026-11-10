@@ -75,11 +75,11 @@ plan and add them as substitutes). It closes for good once you lock (publish) th
    member: the app **remembers this spelling** and will recognise it next time. Tap ✕ for
    lines that are not players.
 5. Someone new? The **+** button next to the search box adds them to the roster and registers them.
-6. Tap **Run selection** in the bar at the bottom (for the event shown). Before Wednesday
+6. Tap **Run selection (A + B)** in the bar at the bottom: by default Team A and Team B are
+   recomputed and saved together, so nobody ends up in both lineups. Before Wednesday
    10 PM (Paris time) the app warns that registrations are still open and you must type
-   **EARLY** to run it anyway. While the other event has no plan yet, both are balanced
-   together but only this one is saved. **Run Team A and Team B together** (under the list)
-   recomputes and saves both at once.
+   **EARLY** to run it anyway. **Run Team A only** / **Run Team B only** (under the list) is
+   the exception: it saves only the event shown and respects the other event's current plan.
 
 > The checklist always works, even without OCR (offline, old phone, bad screenshot).
 

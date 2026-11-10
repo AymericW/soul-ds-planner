@@ -301,8 +301,8 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
         </details>
         <div className="step-extras__actions">
           {vm.canRunBoth && (
-            <button type="button" className="button button--ghost button--small" onClick={() => setConfirmBoth(true)}>
-              Run Team A and Team B together
+            <button type="button" className="button button--ghost button--small" onClick={() => setConfirmRun(true)}>
+              Run {vm.team} only
             </button>
           )}
           <button
@@ -330,8 +330,11 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
               </span>
             )}
           </div>
-          <button type="button" className="button button--primary" disabled={vm.registeredCount === 0} onClick={() => setConfirmRun(true)}>
+          <button type="button" className="button button--primary" disabled={vm.registeredCount === 0}
+            onClick={() => (vm.defaultScope === 'both' ? setConfirmBoth(true) : setConfirmRun(true))}
+          >
             {rerun ? 'Re-run selection' : 'Run selection'}
+            {vm.defaultScope === 'both' && ' (A + B)'}
           </button>
         </div>
       )}
@@ -502,8 +505,12 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
       />
       <div className="action-bar action-bar--row">
         {vm.editable && (
-          <button type="button" className="button" onClick={() => (vm.hasOverrides ? setConfirmRerun(true) : void vm.runWeeklySelection())}>
-            Re-run
+          <button
+            type="button"
+            className="button"
+            onClick={() => (vm.weekHasOverrides ? setConfirmRerun(true) : void vm.runWeeklySelection(vm.defaultScope))}
+          >
+            {vm.defaultScope === 'both' ? 'Re-run A + B' : 'Re-run'}
           </button>
         )}
         <button type="button" className="button button--primary" onClick={() => vm.setStep(3)}>
@@ -527,12 +534,16 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
       )}
       {confirmRerun && (
         <ConfirmDialog
-          title="Re-run the selection?"
-          message="The plan is recalculated from the current registrations. Manual moves and swaps are lost."
+          title={vm.defaultScope === 'both' ? 'Re-run Team A and Team B?' : 'Re-run the selection?'}
+          message={
+            vm.defaultScope === 'both'
+              ? 'Both lineups are recalculated from their registrations so that nobody is in both. Manual moves and swaps in both events are lost.'
+              : 'The plan is recalculated from the current registrations. Manual moves and swaps are lost.'
+          }
           confirmLabel="Re-run"
           onCancel={() => setConfirmRerun(false)}
           onConfirm={async () => {
-            await vm.runWeeklySelection();
+            await vm.runWeeklySelection(vm.defaultScope);
             setConfirmRerun(false);
           }}
         />
