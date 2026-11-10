@@ -186,11 +186,13 @@ event is never listed in the other, substitutes may appear in both.
 
 **When are both events computed together?**
 
-* *Run selection* on one event: the other event is included **only while it has no plan
-  yet** (status *registration*) so the split is balanced, but only the current event is
-  saved. When the other event is later run, the first one is fixed and respected.
-* *Run selection for Team A and Team B together*: both editable events are recomputed and
-  saved (manual moves are lost, the app asks first).
+* *Run selection (A + B)* — the default button, and *Re-run A + B* on the lineup step:
+  both editable events are recomputed and saved (manual moves in both are lost, the app
+  asks first).
+* *Run Team X only* (small button under the list): the other event is included **only
+  while it has no plan yet** (status *registration*) so the split is balanced, but only
+  the current event is saved. When the other event is later run, the first one is fixed
+  and respected.
 
 Example: Team A has 6 applicants (p1–p6), Team B only 3 (p1, p2, p7), 3 starter places
 each. B is scarcer (3/3 = 1.0 vs 6/3 = 2.0): B gets p1, p2, p7 as starters; A is selected
