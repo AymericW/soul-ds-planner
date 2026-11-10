@@ -41,7 +41,7 @@ import { registrationCap, starterCount } from '@/domain/selection/runSelection';
 import { attendanceConflict, placementConflict } from '@/domain/selection/weekConflicts';
 import { selectWeek as planWeek } from '@/domain/selection/weekSelection';
 import { formatEventDate, toIsoDate, weekStart } from '@/helpers/dates';
-import { formatDuration, formatPower } from '@/helpers/format';
+import { formatDuration, formatPower, pluralise } from '@/helpers/format';
 import type { NameCandidate, OcrMatchResult } from '@/helpers/nameMatching';
 import { isStarterSlot, type Slot } from '@/models/Assignment';
 import type { Member, MemberDraft, MemberRank } from '@/models/Member';
@@ -685,7 +685,7 @@ export function useWeeklyEventViewModel() {
     setAttendanceOcrIds(new Set());
     notify(
       result.issued.length
-        ? `${EVENT_SLOT_INFO[event.slot].team} finalised. ${result.issued.length} no-show${result.issued.length === 1 ? '' : 's'} suspended for ${settings.suspensionEvents} weeks.`
+        ? `${EVENT_SLOT_INFO[event.slot].team} finalised. ${result.issued.length} no-show${result.issued.length === 1 ? '' : 's'} suspended for ${pluralise(settings.suspensionEvents, 'week')}.`
         : `${EVENT_SLOT_INFO[event.slot].team} finalised. No penalties.`,
       'success',
     );
