@@ -147,7 +147,7 @@ the top. To lift one early: Roster → member → **Lift suspension**.
 ## 4. Settings
 
 * Core starters (14), rotation starters (6), substitutes (10) per event – 30 places each.
-* Suspension length in weeks (2; 0 disables penalties).
+* Suspension length in weeks (1; 0 disables penalties).
 * **Player join link**: create / rotate / disable the join code, copy the link, and the
   accepted power drop / rise (−10% / +30%) for self-reported power.
 * Core score weights: Power % / Activity % (70/30) and the tie margin (0.02).

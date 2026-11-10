@@ -37,7 +37,7 @@ Every Friday (Paris time) has **two independent events**: **Team A** at 9 PM and
 | Core starters | 14 | Best relative scores (per event) |
 | Rotation starters | 6 | Fair turn for those who waited longest (per event) |
 | Substitutes | 10 | Called in, in order, when a starter is missing (per event) |
-| Suspension length | 2 | **Weeks** a no-show is excluded for (Team A and Team B) |
+| Suspension length | 1 | **Weeks** a no-show is excluded for (Team A and Team B) |
 | Weights | 70% power / 30% activity | Used for the core score |
 | Tie margin (ε) | 0.02 | Scores this close are "too close to call" |
 | Accepted power drop / rise | −10% / +30% | Self-reported power in this range updates the roster directly (section 10) |
@@ -55,7 +55,7 @@ Only members who registered (ticked in step 1, or self-registered) **and** are
 * **not already committed in the other event of the week** (section 6).
 
 Ineligible applicants are listed under *Not selected* with the reason
-("Inactive member", "Suspended – 2 weeks left", "Starter in Team B this week").
+("Inactive member", "Suspended – 1 week left", "Starter in Team B this week").
 
 ## 3. Core: relative score
 
