@@ -59,7 +59,8 @@ src/
     settings/    settingsRules (validation)
   helpers/     normalise, fuzzy, nameMatching (OCR text → members), csv, format, dates (incl. Paris date), imagePreprocessing, id
   services/    ocrService, importService + rosterTableParser, exportService (backup, CSV), clipboardService,
-               buildingImageService (canvas drawing of the "Affectations des bâtiments" PNG, download, share sheet)
+               buildingImageService (canvas drawing of the "Affectations des bâtiments" PNG on top of the alliance artwork
+               in public/desert-storm/buildings-template.webp, names removed; download, share sheet)
   data/        repositories.ts (interfaces incl. JoinGateway), supabase/, memory/ (+ inMemoryJoin), local/, demo/, settingsMerge.ts
   viewmodels/  AppServicesContext, ToastContext, useAppData, useNavigationViewModel,
                useRosterViewModel, useWeeklyEventViewModel, useScreenshotOcr, useJoinViewModel,

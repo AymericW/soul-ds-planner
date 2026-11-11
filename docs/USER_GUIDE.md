@@ -114,7 +114,7 @@ to a building with a free place or to swap it with another starter; **Fill again
 power** undoes your moves. Re-running the selection also fills the buildings again.
 
 **Image for the game chat** is the "Tempête du Désert – Équipe A/B – Affectations des
-bâtiments" picture, drawn on the device from the buildings above: the names on each
+bâtiments" picture, drawn on the device on the alliance's own artwork from the buildings above: the names on each
 building, the substitutes in call-in order and the *Directives de l'escouade
 d'élimination* (Phase 1 / Phase 2) with the squad names taken from the Silo, the Arsenal
 and the mercenary factory. **Download image** saves a PNG (one per team; **Download both

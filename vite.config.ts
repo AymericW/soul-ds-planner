@@ -46,7 +46,7 @@ export default defineConfig({
         // window of the app is closed, which an installed app on a phone almost never is.
         skipWaiting: true,
         clientsClaim: true,
-        globPatterns: ['**/*.{js,css,html,png,svg,webmanifest,csv}'],
+        globPatterns: ['**/*.{js,css,html,png,svg,webp,webmanifest,csv}'],
         navigateFallback: 'index.html',
         // OCR engine + language data are downloaded on first OCR use; cache them so OCR also works offline afterwards.
         runtimeCaching: [
