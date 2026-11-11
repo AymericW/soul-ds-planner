@@ -1,5 +1,6 @@
 import type { Assignment } from '@/models/Assignment';
 import type { Attendance } from '@/models/Attendance';
+import type { BuildingAssignment } from '@/models/Building';
 import type { RegistrationSource } from '@/models/Registration';
 import type { Settings } from '@/models/Settings';
 import type { WeekEvent } from '@/models/WeekEvent';
@@ -55,8 +56,24 @@ export function clearRegistrations(event: WeekEvent, nowIso: string): WeekEvent 
   return { ...event, registrations: [], updatedAt: nowIso };
 }
 
+/** A (re-)run replaces the lineup; manual building moves are dropped with it (the buildings are auto-filled again). */
 export function applySelectionToEvent(event: WeekEvent, assignments: Assignment[], settings: Settings, nowIso: string): WeekEvent {
-  return { ...event, status: 'planned', assignments, settingsSnapshot: settings, attendance: [], updatedAt: nowIso };
+  const next: WeekEvent = { ...event, status: 'planned', assignments, settingsSnapshot: settings, attendance: [], updatedAt: nowIso };
+  delete next.buildings;
+  return next;
+}
+
+/** Stores the building plan (starters placed on the Desert Storm buildings) after a manual move or swap. */
+export function setBuildingPlan(event: WeekEvent, buildings: BuildingAssignment[], nowIso: string): WeekEvent {
+  return { ...event, buildings, updatedAt: nowIso };
+}
+
+/** Forgets the manual building moves: the buildings are auto-filled from the lineup again. */
+export function resetBuildingPlan(event: WeekEvent, nowIso: string): WeekEvent {
+  if (!event.buildings) return event;
+  const next = { ...event, updatedAt: nowIso };
+  delete next.buildings;
+  return next;
 }
 
 export function replaceAssignments(event: WeekEvent, assignments: Assignment[], nowIso: string): WeekEvent {

@@ -41,26 +41,30 @@ The rules are enforced twice:
 
 ```
 src/
-  constants/   defaults.ts, rules.ts (incl. JOIN_LIMITS), events.ts (Team A/B times), routes.ts, storageKeys.ts, theme.ts, pwa.ts
-  models/      Member, Settings, Registration, Assignment, Attendance, Suspension, WeekEvent (+ EventSlot), MemberStats,
-               JoinRequest (join page types), PowerChange, Backup, RosterImport
+  constants/   defaults.ts, rules.ts (incl. JOIN_LIMITS), events.ts (Team A/B times), buildings.ts (Desert Storm buildings,
+               capacities, squad directives, image texts), routes.ts, storageKeys.ts, theme.ts, pwa.ts
+  models/      Member, Settings, Registration, Assignment, Building (BuildingId, BuildingAssignment), Attendance, Suspension,
+               WeekEvent (+ EventSlot), MemberStats, JoinRequest (join page types), PowerChange, Backup, RosterImport
   domain/
     scoring/     relativeScore.ts (formula), coreRanking.ts (ε close-call rule)
     selection/   eligibility, core, rotation, substitutes, runSelection (one event), weekSelection (Team A + B),
                  weekConflicts (one game per week), overrides, planText
     penalties/   penaltyRules, suspensions (countdown, lift), finaliseEvent (weekly countdown)
     history/     eventHistory (played), weekHistory (weeks since, A+B combined), memberStats (participation)
-    events/      eventLifecycle (registrations, lock, attendance edits), weekEvents (upcoming Friday, A/B ids, weeks)
+    events/      eventLifecycle (registrations, lock, attendance edits, building plan), weekEvents (upcoming Friday, A/B ids, weeks)
+    buildings/   buildingPlan (starters → buildings by power, manual moves/swaps, reconcile with the lineup),
+                 buildingImageContent (names, substitutes and squad directives printed on the shared image)
     join/        joinRules (code, choices → registration, power rule), joinRequests (unlisted players)
     roster/      memberRules (validation, aliases), importPlan (add/update/skip), powerChanges, nameSuggestions
     settings/    settingsRules (validation)
   helpers/     normalise, fuzzy, nameMatching (OCR text → members), csv, format, dates (incl. Paris date), imagePreprocessing, id
-  services/    ocrService, importService + rosterTableParser, exportService (backup, CSV), clipboardService
+  services/    ocrService, importService + rosterTableParser, exportService (backup, CSV), clipboardService,
+               buildingImageService (canvas drawing of the "Affectations des bâtiments" PNG, download, share sheet)
   data/        repositories.ts (interfaces incl. JoinGateway), supabase/, memory/ (+ inMemoryJoin), local/, demo/, settingsMerge.ts
   viewmodels/  AppServicesContext, ToastContext, useAppData, useNavigationViewModel,
                useRosterViewModel, useWeeklyEventViewModel, useScreenshotOcr, useJoinViewModel,
                useRequestsViewModel (+ usePendingRequestCount), useHistoryViewModel, useSettingsViewModel, useDemoData
-  components/  BottomNav, MemberChecklist, ScreenshotUploader, SlotBoard, PlayerCard, PlayerActionSheet,
+  components/  BottomNav, MemberChecklist, ScreenshotUploader, SlotBoard, PlayerCard, PlayerActionSheet, BuildingBoard, BuildingActionSheet,
                AttendanceList, UnmatchedNames, MemberForm, MemberCard, ImportPreviewPanel, Modal, PowerEditor,
                ConfirmDialog, ToastHost, NumberStepper, Segmented, SearchInput, StepIndicator, …
   screens/     RosterScreen, WeeklyEventScreen (Team A/B switcher; Poll, Lineup, Share, Attendance steps), RequestsScreen,
@@ -77,8 +81,9 @@ deterministic ids `YYYY-MM-DD-A` / `-B`, created automatically for the upcoming 
 `ensureWeekEvents()` (database function `ensure_week_events`). Each moves independently
 through `registration → planned → locked → finalised`.
 It holds `registrations` (who voted or self-registered, with `source` ocr/manual/self),
-`assignments` (slot + order + reason per player), `attendance` (entered / notified) and the
-ids of suspensions it issued. The two events of a week are tied together only by domain
+`assignments` (slot + order + reason per player), an optional `buildings` plan (starters placed on
+the Desert Storm buildings, stored only once an R4 moved someone; otherwise auto-filled from
+power on the fly), `attendance` (entered / notified) and the ids of suspensions it issued. The two events of a week are tied together only by domain
 rules (`selectWeek`, `weekConflicts`: one game per player per week).
 `Suspension`s live in their own store and count down once per week. Statistics
 (participation, last played) are **derived** from finalised events, counted in weeks

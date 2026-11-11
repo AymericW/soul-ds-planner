@@ -2294,3 +2294,129 @@ button.player-card:hover,
     padding: 0.7rem 2rem;
   }
 }
+
+/* Share: buildings + image for the game chat */
+.building-board {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+@media (min-width: 620px) {
+  .building-board {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.building {
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  border-left: 5px solid var(--color-accent);
+  background: var(--color-bg-elevated);
+  padding: 0.5rem 0.65rem 0.6rem;
+}
+
+.building--silo {
+  border-left-color: var(--color-core);
+}
+
+.building--refinery1,
+.building--refinery2,
+.building--science,
+.building--info,
+.building--arsenal,
+.building--mercenary {
+  border-left-color: var(--color-rotation);
+}
+
+.building--hospital1,
+.building--hospital2,
+.building--hospital3,
+.building--hospital4 {
+  border-left-color: var(--color-substitute);
+}
+
+.building--unplaced {
+  border-left-color: var(--color-warning);
+}
+
+.building__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.building__title {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.building__count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.building__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.building-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+button.building-chip {
+  cursor: pointer;
+}
+
+button.building-chip:hover,
+.building-chip.is-highlighted {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg));
+}
+
+.building-chip--empty {
+  border-style: dashed;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  background: transparent;
+}
+
+.building-chip__name {
+  font-weight: 700;
+}
+
+.building-chip__meta {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.image-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: #000;
+}

@@ -10,6 +10,8 @@ import {
   markAttendedMany,
   registrationDrift,
   replaceAssignments,
+  resetBuildingPlan,
+  setBuildingPlan,
   setAttended,
   setNotified,
   setRegistered,
@@ -30,6 +32,17 @@ import {
   weekKeyOf,
 } from '@/domain/events/weekEvents';
 import { ConflictError } from '@/data/repositories';
+import { BUILDING_INFO } from '@/constants/buildings';
+import { buildBuildingImageContent, buildingImageFileName } from '@/domain/buildings/buildingImageContent';
+import {
+  buildingHasRoom,
+  buildingsById,
+  hasBuildingOverrides,
+  moveToBuilding as moveToBuildingPlan,
+  reconcileBuildingPlan,
+  swapBuildings,
+  unplacedStarters,
+} from '@/domain/buildings/buildingPlan';
 import { finaliseEvent } from '@/domain/penalties/finaliseEvent';
 import { isPenalised, needsNotificationAnswer } from '@/domain/penalties/penaltyRules';
 import { remainingSuspension } from '@/domain/penalties/suspensions';
@@ -44,8 +57,10 @@ import { formatEventDate, toIsoDate, weekStart } from '@/helpers/dates';
 import { formatDuration, formatPower, pluralise } from '@/helpers/format';
 import type { NameCandidate, OcrMatchResult } from '@/helpers/nameMatching';
 import { isStarterSlot, type Slot } from '@/models/Assignment';
+import { BUILDINGS, type BuildingId } from '@/models/Building';
 import type { Member, MemberDraft, MemberRank } from '@/models/Member';
 import { EVENT_SLOTS, type EventSlot, type EventStatus, type WeekEvent } from '@/models/WeekEvent';
+import { canShareFiles, downloadBlob, renderBuildingImage, shareFiles } from '@/services/buildingImageService';
 import { copyText } from '@/services/clipboardService';
 import { useAppServices } from './AppServicesContext';
 import { useAppData } from './useAppData';
@@ -527,6 +542,158 @@ export function useWeeklyEventViewModel() {
     notify(ok ? 'Plan copied – paste it in the alliance chat.' : 'Could not copy automatically. Select the text and copy it.', ok ? 'success' : 'warning');
   }, [planText, notify]);
 
+  // ---------- step 3: buildings + shared image ----------
+  /** Starters on the Desert Storm buildings: auto-filled from power until an R4 moves someone. */
+  const buildingPlan = useMemo(
+    () => (event && event.status !== 'registration' ? reconcileBuildingPlan(event.buildings, event.assignments, members) : []),
+    [event, members],
+  );
+  const buildingsEditable = event?.status === 'planned' || event?.status === 'locked';
+  const hasBuildingMoves = hasBuildingOverrides(buildingPlan);
+
+  const buildingBoard = useMemo(() => {
+    const toPlayer = (memberId: string, overridden: boolean) => {
+      const m = memberById.get(memberId);
+      return { memberId, name: m?.name ?? '(removed member)', power: m?.power ?? 0, overridden };
+    };
+    const byBuilding = buildingsById(buildingPlan);
+    return {
+      buildings: BUILDINGS.map((id) => ({
+        id,
+        label: BUILDING_INFO[id].label,
+        capacity: BUILDING_INFO[id].capacity,
+        players: byBuilding[id].map((a) => toPlayer(a.memberId, Boolean(a.overridden))),
+      })),
+      unplaced: event ? unplacedStarters(buildingPlan, event.assignments, members).map((id) => toPlayer(id, false)) : [],
+    };
+  }, [buildingPlan, event, members, memberById]);
+
+  /** Targets of a manual move, with the free places left. */
+  const buildingTargets = useMemo(
+    () =>
+      BUILDINGS.map((id) => ({
+        id,
+        label: BUILDING_INFO[id].label,
+        free: BUILDING_INFO[id].capacity - buildingPlan.filter((a) => a.building === id).length,
+      })),
+    [buildingPlan],
+  );
+
+  const moveToBuilding = useCallback(
+    async (memberId: string, to: BuildingId) => {
+      if (!event || !buildingsEditable) return;
+      if (!buildingHasRoom(buildingPlan, to)) {
+        notify(`${BUILDING_INFO[to].label} is full – swap with one of its players instead.`, 'warning');
+        return;
+      }
+      await mutateEvent((e) => {
+        const plan = reconcileBuildingPlan(e.buildings, e.assignments, members);
+        if (!buildingHasRoom(plan, to)) return null;
+        return setBuildingPlan(e, moveToBuildingPlan(plan, memberId, to), nowIso());
+      });
+    },
+    [event, buildingsEditable, buildingPlan, members, mutateEvent, nowIso, notify],
+  );
+
+  const swapBuildingPlayers = useCallback(
+    async (a: string, b: string) => {
+      if (!event || !buildingsEditable) return;
+      await mutateEvent((e) => setBuildingPlan(e, swapBuildings(reconcileBuildingPlan(e.buildings, e.assignments, members), a, b), nowIso()));
+    },
+    [event, buildingsEditable, members, mutateEvent, nowIso],
+  );
+
+  const resetBuildings = useCallback(async () => {
+    if (!event || !buildingsEditable) return;
+    await mutateEvent((e) => resetBuildingPlan(e, nowIso()));
+    notify('Buildings filled again from power.', 'success');
+  }, [event, buildingsEditable, mutateEvent, nowIso, notify]);
+
+  const buildingImageContent = useMemo(
+    () => (event && event.status !== 'registration' ? buildBuildingImageContent(event, buildingPlan, members) : null),
+    [event, buildingPlan, members],
+  );
+
+  // Live preview of the PNG; re-drawn whenever the plan changes.
+  const [buildingImage, setBuildingImage] = useState<{ url: string; blob: Blob; eventId: string } | null>(null);
+  const [buildingImageError, setBuildingImageError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!buildingImageContent || !event) {
+      setBuildingImage(null);
+      return;
+    }
+    let cancelled = false;
+    const eventId = event.id;
+    renderBuildingImage(buildingImageContent)
+      .then((blob) => {
+        if (cancelled) return;
+        setBuildingImageError(null);
+        setBuildingImage({ url: URL.createObjectURL(blob), blob, eventId });
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setBuildingImageError(`Could not draw the image: ${errorMessage(e)}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [buildingImageContent, event]);
+  useEffect(
+    () => () => {
+      if (buildingImage) URL.revokeObjectURL(buildingImage.url);
+    },
+    [buildingImage],
+  );
+
+  /** The PNGs to export: this team, plus the other team of the week when it is planned. */
+  const renderImages = useCallback(
+    async (scope: 'this' | 'both'): Promise<File[]> => {
+      if (!event || !buildingImageContent) return [];
+      const targets = scope === 'both' ? [event, ...otherEvents.filter((o) => o.status !== 'registration')] : [event];
+      const files: File[] = [];
+      for (const target of targets) {
+        const content =
+          target.id === event.id
+            ? buildingImageContent
+            : buildBuildingImageContent(target, reconcileBuildingPlan(target.buildings, target.assignments, members), members);
+        const blob = target.id === event.id && buildingImage?.eventId === event.id ? buildingImage.blob : await renderBuildingImage(content);
+        files.push(new File([blob], buildingImageFileName(target), { type: 'image/png' }));
+      }
+      return files;
+    },
+    [event, otherEvents, buildingImageContent, buildingImage, members],
+  );
+
+  const otherTeamHasPlan = otherEvents.some((o) => o.status !== 'registration');
+
+  const downloadBuildingImage = useCallback(
+    async (scope: 'this' | 'both' = 'this') => {
+      try {
+        const files = await renderImages(scope);
+        for (const file of files) downloadBlob(file, file.name);
+        if (files.length) notify(files.length === 1 ? `Image saved: ${files[0]!.name}` : `${files.length} images saved.`, 'success');
+      } catch (e) {
+        notify(`Could not create the image: ${errorMessage(e)}`, 'error');
+      }
+    },
+    [renderImages, notify],
+  );
+
+  const canShareImage = useMemo(() => canShareFiles(), []);
+  const shareBuildingImage = useCallback(
+    async (scope: 'this' | 'both' = 'this') => {
+      if (!event) return;
+      try {
+        const files = await renderImages(scope);
+        if (!files.length) return;
+        const ok = await shareFiles(files, `Desert Storm ${EVENT_SLOT_INFO[event.slot].team} – ${formatEventDate(event.date)}`);
+        if (!ok) notify('Sharing was cancelled or is not available – use Download instead.', 'info');
+      } catch (e) {
+        notify(`Could not share the image: ${errorMessage(e)}`, 'error');
+      }
+    },
+    [renderImages, event, notify],
+  );
+
   // ---------- step 4: attendance ----------
   const lineupCandidates = useMemo(
     () =>
@@ -832,6 +999,19 @@ export function useWeeklyEventViewModel() {
     // step 3
     planText,
     copyPlan,
+    buildingBoard,
+    buildingTargets,
+    buildingsEditable,
+    hasBuildingMoves,
+    moveToBuilding,
+    swapBuildingPlayers,
+    resetBuildings,
+    buildingImageUrl: buildingImage?.eventId === event?.id ? (buildingImage?.url ?? null) : null,
+    buildingImageError,
+    downloadBuildingImage,
+    canShareImage,
+    shareBuildingImage,
+    otherTeamHasPlan,
     eventOver,
     startAttendance,
     unlockPlan,

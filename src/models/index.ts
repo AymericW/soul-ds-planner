@@ -2,6 +2,7 @@ export * from './Member';
 export * from './Settings';
 export * from './Registration';
 export * from './Assignment';
+export * from './Building';
 export * from './Attendance';
 export * from './Suspension';
 export * from './WeekEvent';

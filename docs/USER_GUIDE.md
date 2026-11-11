@@ -104,10 +104,26 @@ the last substitutes) or to re-run. Rules are explained in `docs/ALGORITHM.md`.
 
 The **in-game sign-up list** shows the whole lineup – core, rotation and substitutes,
 numbered – so you can sign everyone up in the game at a glance. **Copy plan** copies the
-plan text for the alliance chat (tap *Plan text for the alliance chat* to read it). You can
-jump between steps by tapping the step bar at the top. The poll and the lineup stay
-editable until the event: create the week on Monday, tweak starters, rotation and subs
-until Friday. Attendance opens on the event date (an "open anyway" link covers
+plan text for the alliance chat (tap *Plan text for the alliance chat* to read it).
+
+**Buildings** places the 20 starters on the Desert Storm buildings, from power: the two
+strongest core players in the *Silo nucléaire*, then the two *Raffineries de pétrole*, the
+*Centre scientifique*, the *Centre d'information*, the *Arsenal*, the *Usine de
+mercenaires*, and everyone else in the four *Hôpitaux de campagne*. Tap a name to move it
+to a building with a free place or to swap it with another starter; **Fill again from
+power** undoes your moves. Re-running the selection also fills the buildings again.
+
+**Image for the game chat** is the "Tempête du Désert – Équipe A/B – Affectations des
+bâtiments" picture, drawn on the device from the buildings above: the names on each
+building, the substitutes in call-in order and the *Directives de l'escouade
+d'élimination* (Phase 1 / Phase 2) with the squad names taken from the Silo, the Arsenal
+and the mercenary factory. **Download image** saves a PNG (one per team; **Download both
+teams** when the other event is planned too); on a phone **Share…** opens the share sheet
+so you can post it straight into the game chat.
+
+You can jump between steps by tapping the step bar at the top. The poll and the lineup
+stay editable until the event: create the week on Monday, tweak starters, rotation and
+subs until Friday. Attendance opens on the event date (an "open anyway" link covers
 early/late cases).
 
 ### Step 4 – Attendance (after the event)

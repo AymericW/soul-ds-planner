@@ -70,3 +70,19 @@ export const BackIcon = ({ size }: { size?: number }) => (
     <path d="M19 12H5M11 6l-6 6 6 6" />
   </Icon>
 );
+
+export const DownloadIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M12 4v11" />
+    <path d="m7 10 5 5 5-5" />
+    <path d="M4 19h16" />
+  </Icon>
+);
+
+export const ShareIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M12 15V4" />
+    <path d="m8 8 4-4 4 4" />
+    <path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
+  </Icon>
+);

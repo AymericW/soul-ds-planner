@@ -1,5 +1,6 @@
 import type { Assignment } from './Assignment';
 import type { Attendance } from './Attendance';
+import type { BuildingAssignment } from './Building';
 import type { Registration } from './Registration';
 import type { Settings } from './Settings';
 
@@ -27,6 +28,8 @@ export interface WeekEvent {
   status: EventStatus;
   registrations: Registration[];
   assignments: Assignment[];
+  /** Starters placed on the Desert Storm buildings (shared image). Absent = auto-filled from the lineup. */
+  buildings?: BuildingAssignment[];
   attendance: Attendance[];
   /** Ids of suspensions created when this event was finalised. */
   suspensionIdsIssued: string[];

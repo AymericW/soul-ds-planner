@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { AttendanceList } from '@/components/AttendanceList';
+import { BuildingActionSheet } from '@/components/BuildingActionSheet';
+import { BuildingBoard } from '@/components/BuildingBoard';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EarlyRunSheet } from '@/components/EarlyRunSheet';
 import { EmptyState } from '@/components/EmptyState';
-import { CameraIcon, ClockIcon, CopyIcon, LinkIcon, PlusIcon } from '@/components/Icons';
+import { CameraIcon, ClockIcon, CopyIcon, DownloadIcon, LinkIcon, PlusIcon, ShareIcon } from '@/components/Icons';
 import { MemberChecklist } from '@/components/MemberChecklist';
 import { MemberForm } from '@/components/MemberForm';
 import { Modal } from '@/components/Modal';
@@ -554,6 +556,7 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
 
 function ShareStep({ vm }: { vm: WeeklyEventViewModel }) {
   const [confirmEarly, setConfirmEarly] = useState(false);
+  const [confirmResetBuildings, setConfirmResetBuildings] = useState(false);
   const event = vm.event;
   const locked = event?.status === 'locked';
   const lineup = vm.board.core.length + vm.board.rotation.length + vm.board.substitute.length;
@@ -572,6 +575,19 @@ function ShareStep({ vm }: { vm: WeeklyEventViewModel }) {
         <summary className="muted small">Plan text for the alliance chat</summary>
         <pre className="plan-text">{vm.planText}</pre>
       </details>
+      <BuildingsSection vm={vm} onReset={() => setConfirmResetBuildings(true)} />
+      {confirmResetBuildings && (
+        <ConfirmDialog
+          title="Fill the buildings again from power?"
+          message="Your manual moves and swaps on the buildings are lost. The Silo gets the strongest core players again, then the refineries, the science centre, and so on."
+          confirmLabel="Fill again"
+          onCancel={() => setConfirmResetBuildings(false)}
+          onConfirm={async () => {
+            await vm.resetBuildings();
+            setConfirmResetBuildings(false);
+          }}
+        />
+      )}
       {!locked && !vm.eventOver && (
         <div className="step-extras__actions">
           <button type="button" className="button button--ghost button--small" onClick={() => setConfirmEarly(true)}>
@@ -606,6 +622,80 @@ function ShareStep({ vm }: { vm: WeeklyEventViewModel }) {
         />
       )}
     </div>
+  );
+}
+
+/** The building assignments (tap to move or swap) and the picture for the game chat. */
+function BuildingsSection({ vm, onReset }: { vm: WeeklyEventViewModel; onReset: () => void }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const board = vm.buildingBoard;
+  const placed = board.buildings.flatMap((b) => b.players.map((p) => ({ ...p, building: b.id, buildingLabel: b.label })));
+  const unplaced = board.unplaced.map((p) => ({ ...p, building: null, buildingLabel: 'Not placed' }));
+  const all = [...placed, ...unplaced];
+  const player = selected ? all.find((p) => p.memberId === selected) : undefined;
+  const filled = placed.length;
+  const places = board.buildings.reduce((n, b) => n + b.capacity, 0);
+  return (
+    <>
+      <div className="section-head">
+        <h2 className="section-head__title">Buildings</h2>
+        <span className="muted small">
+          {filled}/{places} placed
+        </span>
+      </div>
+      <p className="muted small step-hint">
+        {vm.buildingsEditable ? 'Filled from power: strongest core players in the Silo, then refineries, science centre, information centre, Arsenal, mercenary factory, the rest in the hospitals. Tap a name to move or swap it.' : 'The event is finalised; the buildings can no longer be changed.'}
+      </p>
+      <BuildingBoard board={board} onSelectPlayer={vm.buildingsEditable ? setSelected : undefined} selectedId={selected} />
+      {vm.hasBuildingMoves && vm.buildingsEditable && (
+        <div className="step-extras__actions">
+          <button type="button" className="button button--ghost button--small" onClick={onReset}>
+            Fill again from power
+          </button>
+        </div>
+      )}
+      <div className="section-head">
+        <h2 className="section-head__title">Image for the game chat</h2>
+      </div>
+      {vm.buildingImageError ? (
+        <div className="notice notice--danger">{vm.buildingImageError}</div>
+      ) : vm.buildingImageUrl ? (
+        <img className="image-preview" src={vm.buildingImageUrl} alt={`Building assignments of ${vm.team}`} />
+      ) : (
+        <p className="muted small">Drawing the image…</p>
+      )}
+      <div className="step-extras__actions">
+        <button type="button" className="button button--small" disabled={!vm.buildingImageUrl} onClick={() => void vm.downloadBuildingImage('this')}>
+          <DownloadIcon size={18} /> Download image
+        </button>
+        {vm.otherTeamHasPlan && (
+          <button type="button" className="button button--ghost button--small" disabled={!vm.buildingImageUrl} onClick={() => void vm.downloadBuildingImage('both')}>
+            Download both teams
+          </button>
+        )}
+        {vm.canShareImage && (
+          <button type="button" className="button button--ghost button--small" disabled={!vm.buildingImageUrl} onClick={() => void vm.shareBuildingImage('this')}>
+            <ShareIcon size={18} /> Share…
+          </button>
+        )}
+      </div>
+      {player && (
+        <BuildingActionSheet
+          player={player}
+          buildings={vm.buildingTargets}
+          others={all}
+          onClose={() => setSelected(null)}
+          onMove={(to) => {
+            void vm.moveToBuilding(player.memberId, to);
+            setSelected(null);
+          }}
+          onSwap={(other) => {
+            void vm.swapBuildingPlayers(player.memberId, other);
+            setSelected(null);
+          }}
+        />
+      )}
+    </>
   );
 }
 
