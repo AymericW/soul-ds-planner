@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { matchOcrText, type NameCandidate, type OcrMatchResult, type UnmatchedLine } from '@/helpers/nameMatching';
 import { OcrUnavailableError } from '@/services/ocrService';
@@ -49,7 +50,7 @@ export function useScreenshotOcr(candidates: readonly NameCandidate[], onMatched
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       const imageUrl = URL.createObjectURL(image);
       urlRef.current = imageUrl;
-      setState({ ...INITIAL, imageUrl, status: 'working', progressLabel: 'Loading OCR engine…' });
+      setState({ ...INITIAL, imageUrl, status: 'working', progressLabel: t().services.ocrLoading });
       try {
         const text = await ocr.recognize(image, (p) => {
           if (runId.current === id) setState((s) => ({ ...s, progressLabel: p.label, progress: p.progress }));
@@ -64,8 +65,8 @@ export function useScreenshotOcr(candidates: readonly NameCandidate[], onMatched
           unmatched: result.unmatched,
           message:
             result.matches.length > 0
-              ? `Recognised ${result.matches.length} name${result.matches.length === 1 ? '' : 's'} and ticked them. Check the list below and fix anything missed.`
-              : 'No roster names were recognised. Try a sharper, full-width screenshot or tick names by hand below.',
+              ? t().week.recognised(result.matches.length)
+              : t().week.noneRecognised,
         }));
         onMatched(result);
       } catch (error) {
@@ -73,7 +74,7 @@ export function useScreenshotOcr(candidates: readonly NameCandidate[], onMatched
         const message =
           error instanceof OcrUnavailableError
             ? error.message
-            : 'Automatic reading failed. Use the checklist below to tick names by hand.';
+            : t().week.ocrFailed;
         setState((s) => ({ ...s, status: 'failed', message }));
       }
     },

@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import type { BuildingImageContent, BuildingImageDirective } from '@/domain/buildings/buildingImageContent';
 import type { BuildingId } from '@/models/Building';
 
@@ -299,7 +300,7 @@ function loadTemplate(): Promise<HTMLImageElement> {
     img.onload = () => resolve(img);
     img.onerror = () => {
       templatePromise = null;
-      reject(new Error('the background picture could not be loaded (check the connection and try again)'));
+      reject(new Error(t().services.imageBackground));
     };
     img.src = TEMPLATE_URL;
   });
@@ -328,7 +329,7 @@ export async function renderBuildingImage(content: BuildingImageContent): Promis
   canvas.width = IMAGE_WIDTH;
   canvas.height = IMAGE_HEIGHT;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas is not supported on this device.');
+  if (!ctx) throw new Error(t().services.canvasUnsupported);
 
   ctx.drawImage(template, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
   drawTeamLetter(ctx, content.team);
@@ -337,7 +338,7 @@ export async function renderBuildingImage(content: BuildingImageContent): Promis
   drawDirectives(ctx, content);
 
   return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Could not encode the image.'))), 'image/png');
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error(t().services.imageEncode))), 'image/png');
   });
 }
 

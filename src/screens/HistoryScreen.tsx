@@ -1,17 +1,18 @@
+import { t } from '@/helpers/i18n';
 import { EmptyState } from '@/components/EmptyState';
 import { formatEventDate } from '@/helpers/dates';
-import { pluralise } from '@/helpers/format';
 import { useHistoryViewModel, type HistoryPlayer } from '@/viewmodels/useHistoryViewModel';
 
-const GROUP_TITLES = { core: 'Core', rotation: 'Rotation', substitute: 'Substitutes' } as const;
+const GROUPS = ['core', 'rotation', 'substitute'] as const;
 
 function PlayerLine({ p, finalised }: { p: HistoryPlayer; finalised: boolean }) {
   const isStarter = p.slot !== 'substitute';
+  const m = t().history;
   let status = '';
   if (finalised) {
-    if (p.attended) status = '✓ played';
-    else if (!isStarter) status = 'not used';
-    else status = p.notified ? '✗ absent (notified)' : '✗ no-show';
+    if (p.attended) status = m.played;
+    else if (!isStarter) status = m.notUsed;
+    else status = p.notified ? m.absentNotified : m.noShow;
   }
   return (
     <li className={`history-player${p.suspended ? ' is-penalised' : ''}`}>
@@ -23,30 +24,31 @@ function PlayerLine({ p, finalised }: { p: HistoryPlayer; finalised: boolean }) 
 
 export function HistoryScreen() {
   const vm = useHistoryViewModel();
+  const m = t().history;
   return (
     <section className="screen">
       <div className="screen__head">
-        <h1 className="screen__title">History</h1>
-        <p className="muted small">Past Team A and Team B events, attendance and penalties.</p>
+        <h1 className="screen__title">{m.title}</h1>
+        <p className="muted small">{m.subtitle}</p>
       </div>
 
       {vm.activeSuspensions.length > 0 && (
         <div className="card">
-          <h2 className="card__title">Active suspensions</h2>
+          <h2 className="card__title">{m.activeSuspensions}</h2>
           <ul className="plain-list">
             {vm.activeSuspensions.map((s) => (
               <li key={s.id}>
-                <strong>{s.name}</strong> – {pluralise(s.remaining, 'event')} left
+                <strong>{s.name}</strong> – {m.left(t().count.event(s.remaining))}
               </li>
             ))}
           </ul>
-          <p className="muted small">An R4 can lift a suspension early from the member's page in the Roster.</p>
+          <p className="muted small">{m.liftHint}</p>
         </div>
       )}
 
       {!vm.loading && vm.history.length === 0 && (
-        <EmptyState title="No events yet">
-          <p>Finalised weeks will appear here with who played, who was absent and any penalties.</p>
+        <EmptyState title={m.empty}>
+          <p>{m.emptyHint}</p>
         </EmptyState>
       )}
 
@@ -62,20 +64,20 @@ export function HistoryScreen() {
                     {formatEventDate(e.date)} · {e.team}
                   </strong>
                   <span className="muted small history-event__meta">
-                    {finalised ? `${e.played} played · ${e.registered} registered` : `In progress (${e.status})`}
-                    {e.penalties.length > 0 && ` · ${pluralise(e.penalties.length, 'penalty', 'penalties')}`}
+                    {finalised ? m.meta(e.played, e.registered) : m.inProgress(t().status[e.status])}
+                    {e.penalties.length > 0 && ` · ${t().count.penalty(e.penalties.length)}`}
                   </span>
                 </span>
                 <span aria-hidden="true">{open ? '▴' : '▾'}</span>
               </button>
               {open && (
                 <div className="history-event__body">
-                  {e.rules && <p className="muted small">Rules used: {e.rules}</p>}
-                  {(Object.keys(GROUP_TITLES) as Array<keyof typeof GROUP_TITLES>).map((g) =>
+                  {e.rules && <p className="muted small">{m.rulesUsed(e.rules)}</p>}
+                  {GROUPS.map((g) =>
                     e.groups[g].length ? (
                       <div key={g} className={`slot slot--${g}`}>
                         <h3 className="slot__title">
-                          {GROUP_TITLES[g]} ({e.groups[g].length})
+                          {t().slots[g]} ({e.groups[g].length})
                         </h3>
                         <ul className="history-players">
                           {e.groups[g].map((p) => (
@@ -86,10 +88,10 @@ export function HistoryScreen() {
                     ) : null,
                   )}
                   {e.notSelected.length > 0 && (
-                    <p className="muted small">Not selected: {e.notSelected.join(', ')}</p>
+                    <p className="muted small">{m.notSelected(e.notSelected.join(', '))}</p>
                   )}
                   <div className={`notice ${e.penalties.length ? 'notice--danger' : 'notice--success'}`}>
-                    {e.penalties.length ? `Penalties issued: ${e.penalties.join(', ')}` : finalised ? 'No penalties issued.' : 'Not finalised yet.'}
+                    {e.penalties.length ? m.penaltiesIssued(e.penalties.join(', ')) : finalised ? m.noPenalties : m.notFinalised}
                   </div>
                 </div>
               )}

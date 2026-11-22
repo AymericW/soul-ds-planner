@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useState } from 'react';
 import { appBuildLabel, checkForUpdates, resetAppFiles } from '@/services/appUpdate';
 import { useToasts } from '@/viewmodels/ToastContext';
@@ -12,13 +13,13 @@ export function useAppUpdateViewModel() {
     try {
       const result = await checkForUpdates();
       if (result === 'updating') {
-        notify('New version found – reloading…', 'success');
+        notify(t().appUpdate.found, 'success');
         return; // the page reloads; keep the buttons disabled
       }
-      if (result === 'latest') notify('You already have the latest version.', 'success');
-      else notify('Updates are not available here (browser without offline support). Reload the page instead.', 'warning');
+      if (result === 'latest') notify(t().appUpdate.latest, 'success');
+      else notify(t().appUpdate.unsupported, 'warning');
     } catch {
-      notify('Could not reach the server. Check your connection and try again.', 'error');
+      notify(t().appUpdate.offline, 'error');
     }
     setBusy(null);
   }

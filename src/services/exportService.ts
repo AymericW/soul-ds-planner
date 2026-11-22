@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { BACKUP_APP_ID, BACKUP_FORMAT_VERSION } from '@/constants/storageKeys';
 import { toCsv } from '@/helpers/csv';
 import { formatPercent } from '@/helpers/format';
@@ -29,24 +30,24 @@ export function parseBackup(text: string): BackupFile {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new InvalidBackupError('This file is not valid JSON.');
+    throw new InvalidBackupError(t().services.backupNotJson);
   }
   if (!isObject(data) || data.app !== BACKUP_APP_ID) {
-    throw new InvalidBackupError('This is not a SOUL DS backup file.');
+    throw new InvalidBackupError(t().services.backupNotOurs);
   }
   if (typeof data.formatVersion !== 'number' || data.formatVersion > BACKUP_FORMAT_VERSION) {
-    throw new InvalidBackupError('This backup was made by a newer version of the app.');
+    throw new InvalidBackupError(t().services.backupTooNew);
   }
   for (const key of ['members', 'events', 'suspensions'] as const) {
-    if (!Array.isArray(data[key])) throw new InvalidBackupError(`Backup is missing "${key}".`);
+    if (!Array.isArray(data[key])) throw new InvalidBackupError(t().services.backupMissing(key));
   }
   const members = data.members as unknown[];
   if (!members.every((m) => isObject(m) && typeof m.id === 'string' && typeof m.name === 'string')) {
-    throw new InvalidBackupError('Backup contains invalid members.');
+    throw new InvalidBackupError(t().services.backupBadMembers);
   }
   const events = data.events as unknown[];
   if (!events.every((e) => isObject(e) && typeof e.id === 'string' && Array.isArray(e.assignments))) {
-    throw new InvalidBackupError('Backup contains invalid events.');
+    throw new InvalidBackupError(t().services.backupBadEvents);
   }
   return {
     ...(data as unknown as BackupFile),

@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useState } from 'react';
 import type { BuildingId } from '@/models/Building';
 import { Modal } from './Modal';
@@ -22,11 +23,11 @@ export function BuildingActionSheet({ player, buildings, others, onMove, onSwap,
           {targets.map((b) => (
             <button key={b.id} type="button" className="button button--block" disabled={b.free === 0} onClick={() => onMove(b.id)}>
               {b.label}
-              <span className="muted small"> · {b.free === 0 ? 'full' : `${b.free} free`}</span>
+              <span className="muted small"> · {b.free === 0 ? t().week.full : t().week.freeCount(b.free)}</span>
             </button>
           ))}
           <button type="button" className="button button--block button--ghost" onClick={() => setSwapping(true)}>
-            Swap with another player…
+            {t().week.swap}
           </button>
         </div>
       ) : (

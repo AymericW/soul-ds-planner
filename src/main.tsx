@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from '@/App';
+import { LocalizedApp } from '@/App';
 import { createAppServices, createLocalAppServices, shouldUseLocalStubs } from '@/compositionRoot';
 import { themeCssVariables } from '@/constants/theme';
 import { readBackendConfig } from '@/data/supabase/client';
@@ -8,6 +8,7 @@ import { SetupNeededScreen } from '@/screens/AuthScreens';
 import { startAppUpdates } from '@/services/appUpdate';
 import { AppServicesProvider } from '@/viewmodels/AppServicesContext';
 import { AuthProvider } from '@/viewmodels/AuthContext';
+import { initLocale, LocaleProvider } from '@/viewmodels/LocaleContext';
 import { ToastProvider } from '@/viewmodels/ToastContext';
 import '@/styles/global.css';
 
@@ -15,6 +16,7 @@ for (const [name, value] of Object.entries(themeCssVariables())) {
   document.documentElement.style.setProperty(name, value);
 }
 
+initLocale();
 startAppUpdates();
 
 const container = document.getElementById('root');
@@ -27,16 +29,18 @@ const services = shouldUseLocalStubs() ? await createLocalAppServices() : config
 
 root.render(
   <StrictMode>
-    {services ? (
-      <AppServicesProvider services={services}>
-        <ToastProvider>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </ToastProvider>
-      </AppServicesProvider>
-    ) : (
-      <SetupNeededScreen />
-    )}
+    <LocaleProvider>
+      {services ? (
+        <AppServicesProvider services={services}>
+          <ToastProvider>
+            <AuthProvider>
+              <LocalizedApp />
+            </AuthProvider>
+          </ToastProvider>
+        </AppServicesProvider>
+      ) : (
+        <SetupNeededScreen />
+      )}
+    </LocaleProvider>
   </StrictMode>,
 );

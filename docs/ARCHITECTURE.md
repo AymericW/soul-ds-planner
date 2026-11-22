@@ -41,7 +41,7 @@ The rules are enforced twice:
 
 ```
 src/
-  constants/   defaults.ts, rules.ts (incl. JOIN_LIMITS), events.ts (Team A/B times), buildings.ts (Desert Storm buildings,
+  constants/   i18n/ (en.ts, fr.ts: every text of the app), defaults.ts, rules.ts (incl. JOIN_LIMITS), events.ts (Team A/B times), buildings.ts (Desert Storm buildings,
                capacities, squad directives, image texts), routes.ts, storageKeys.ts, theme.ts, pwa.ts
   models/      Member, Settings, Registration, Assignment, Building (BuildingId, BuildingAssignment), Attendance, Suspension,
                WeekEvent (+ EventSlot), MemberStats, JoinRequest (join page types), PowerChange, Backup, RosterImport
@@ -57,12 +57,12 @@ src/
     join/        joinRules (code, choices → registration, power rule), joinRequests (unlisted players)
     roster/      memberRules (validation, aliases), importPlan (add/update/skip), powerChanges, nameSuggestions
     settings/    settingsRules (validation)
-  helpers/     normalise, fuzzy, nameMatching (OCR text → members), csv, format, dates (incl. Paris date), imagePreprocessing, id
+  helpers/     i18n (current language, t()), normalise, fuzzy, nameMatching (OCR text → members), csv, format, dates (incl. Paris date), imagePreprocessing, id
   services/    ocrService, importService + rosterTableParser, exportService (backup, CSV), clipboardService,
                buildingImageService (canvas drawing of the "Affectations des bâtiments" PNG on top of the alliance artwork
                in public/desert-storm/buildings-template.webp, names removed; download, share sheet)
   data/        repositories.ts (interfaces incl. JoinGateway), supabase/, memory/ (+ inMemoryJoin), local/, demo/, settingsMerge.ts
-  viewmodels/  AppServicesContext, ToastContext, useAppData, useNavigationViewModel,
+  viewmodels/  AppServicesContext, LocaleContext, ToastContext, useAppData, useNavigationViewModel,
                useRosterViewModel, useWeeklyEventViewModel, useScreenshotOcr, useJoinViewModel,
                useRequestsViewModel (+ usePendingRequestCount), useHistoryViewModel, useSettingsViewModel, useDemoData
   components/  BottomNav, MemberChecklist, ScreenshotUploader, SlotBoard, PlayerCard, PlayerActionSheet, BuildingBoard, BuildingActionSheet,
@@ -129,6 +129,21 @@ account and role (`useAuth()`).
 Implement `Repositories` and `AuthService`, then return them from
 `src/compositionRoot.ts`. Nothing in domain, viewmodels or screens changes. The
 JSON backup (Settings) can move data between backends via `replaceAll`.
+
+## Languages (English / French)
+
+* Every text lives in `src/constants/i18n/en.ts`; `fr.ts` has the same keys (the `Messages` type enforces it,
+  `tests/helpers/i18n.test.ts` double-checks). Values are strings, or functions for texts with numbers or names.
+* `src/helpers/i18n.ts` holds the current language and `t()`, so every layer (domain rules included) reads
+  `t().week.title`. `formatEventDate`, `formatWeeksAgo`, `formatDuration` follow it too.
+* `src/viewmodels/LocaleContext.tsx` picks the language before the first render: the choice saved by the
+  FR/EN switch in the header (localStorage `soul-ds.locale`), otherwise the browser language, otherwise
+  English. Switching remounts `<App>` so memoised texts are rebuilt.
+* Texts stored with the data are written once, in the language of whoever created them: selection reasons,
+  suspension reasons. Event labels stay English because the database builds them too. The building image
+  stays French (in-game names) and CSV export headers stay English (the importer reads them back).
+* Adding a language: add it to `LOCALES` in `src/constants/i18n/index.ts` with its dictionary, and give
+  the header switch a way to reach it.
 
 ## OCR pipeline
 

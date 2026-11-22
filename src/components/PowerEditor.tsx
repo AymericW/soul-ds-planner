@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useState, type FormEvent } from 'react';
 import { formatPower, parsePower } from '@/helpers/format';
 
@@ -19,7 +20,7 @@ export function PowerEditor({ name, currentPower, enteredPower, onSave, onCancel
     e.preventDefault();
     const power = parsePower(text);
     if (power === undefined) {
-      setError('Write power like 152.3M, 1.2B or 152300000.');
+      setError(t().common.powerFormat);
       return;
     }
     await onSave(power);
@@ -28,26 +29,26 @@ export function PowerEditor({ name, currentPower, enteredPower, onSave, onCancel
   return (
     <form className="form" onSubmit={(e) => void submit(e)} noValidate>
       <p className="muted small">
-        Roster power of <strong>{name}</strong>: {formatPower(currentPower)}
-        {enteredPower !== undefined && enteredPower !== currentPower && ` · entered by the player: ${formatPower(enteredPower)}`}
+        {t().member.rosterPowerOf} <strong>{name}</strong>: {formatPower(currentPower)}
+        {enteredPower !== undefined && enteredPower !== currentPower && t().member.enteredByPlayer(formatPower(enteredPower))}
       </p>
       <label className="field">
-        <span className="field__label">Power</span>
+        <span className="field__label">{t().member.power}</span>
         <input className="input" value={text} onChange={(e) => setText(e.target.value)} inputMode="decimal" autoComplete="off" />
         {error && <span className="field__error">{error}</span>}
       </label>
       <div className="form__actions">
         {enteredPower !== undefined && enteredPower !== currentPower && (
           <button type="button" className="button button--ghost" onClick={() => setText(formatPower(enteredPower))}>
-            Use {formatPower(enteredPower)}
+            {t().member.use(formatPower(enteredPower))}
           </button>
         )}
         <span className="spacer" />
         <button type="button" className="button button--ghost" onClick={onCancel}>
-          Cancel
+          {t().common.cancel}
         </button>
         <button type="submit" className="button button--primary">
-          Save
+          {t().common.save}
         </button>
       </div>
     </form>

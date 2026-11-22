@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { canAdminister, canEditAllianceData } from '@/domain/accounts/permissions';
 import type { Account } from '@/models/Account';
@@ -38,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       setStatus(own && canEditAllianceData(own.role) ? 'ready' : 'pending');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load your account.');
+      setError(e instanceof Error ? e.message : t().auth.couldNotLoadAccount);
       setStatus('error');
     }
   }, [auth]);
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((session) => apply(Boolean(session)))
       .catch((e: unknown) => {
         if (!active) return;
-        setError(e instanceof Error ? e.message : 'Could not reach the server.');
+        setError(e instanceof Error ? e.message : t().auth.couldNotReachServer);
         setStatus('error');
       });
     // Token refreshes also fire this; only react to real sign-in/out transitions.
@@ -82,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await auth.signIn(email, password);
         return null;
       } catch (e) {
-        return e instanceof Error ? e.message : 'Could not sign in.';
+        return e instanceof Error ? e.message : t().auth.couldNotSignIn;
       }
     },
     [auth],

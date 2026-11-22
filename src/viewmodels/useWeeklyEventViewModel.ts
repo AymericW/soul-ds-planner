@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EVENT_SLOT_INFO } from '@/constants/events';
+import { t } from '@/helpers/i18n';
 import {
   addRegistrations,
   applySelectionToEvent,
@@ -53,8 +54,8 @@ import { buildPlanText } from '@/domain/selection/planText';
 import { registrationCap, starterCount } from '@/domain/selection/runSelection';
 import { attendanceConflict, placementConflict } from '@/domain/selection/weekConflicts';
 import { selectWeek as planWeek } from '@/domain/selection/weekSelection';
-import { formatEventDate, weekStart } from '@/helpers/dates';
-import { formatDuration, formatPower, pluralise } from '@/helpers/format';
+import { formatEventDate, formatWeekday, weekStart } from '@/helpers/dates';
+import { formatDuration, formatPower } from '@/helpers/format';
 import type { NameCandidate, OcrMatchResult } from '@/helpers/nameMatching';
 import { isStarterSlot, type Slot } from '@/models/Assignment';
 import { BUILDINGS, type BuildingId } from '@/models/Building';
@@ -127,7 +128,8 @@ function initialStep(event: WeekEvent | undefined): WizardStep {
 
 const toCandidate = (m: Member): NameCandidate => ({ id: m.id, name: m.name, aliases: m.aliases });
 
-const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : 'unknown error');
+const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : t().common.unknownError);
+const teamOf = (slot: EventSlot): string => t().events.team(slot);
 
 export function useWeeklyEventViewModel() {
   const { repos, now, newId } = useAppServices();
@@ -164,7 +166,7 @@ export function useWeeklyEventViewModel() {
     repos.events
       .ensureWeekEvents()
       .then(reload)
-      .catch((e: unknown) => notify(`Could not create this week's events: ${errorMessage(e)}`, 'error'));
+      .catch((e: unknown) => notify(t().week.createWeekFailed(errorMessage(e)), 'error'));
   }, [repos, reload, notify]);
 
   // Jump to the right step when an event is opened (or after reload of a different event).
@@ -208,9 +210,7 @@ export function useWeeklyEventViewModel() {
       return task
         .catch((e: unknown) => {
           notify(
-            e instanceof ConflictError
-              ? 'Someone else changed this event at the same moment. The latest version was loaded – please redo your last change.'
-              : `Could not save: ${errorMessage(e)}`,
+            e instanceof ConflictError ? t().week.conflictRedo : t().common.couldNotSave(errorMessage(e)),
             'error',
           );
         })
@@ -237,14 +237,14 @@ export function useWeeklyEventViewModel() {
       try {
         for (const e of created) await repos.events.save(e);
       } catch (e) {
-        notify(`Could not create the events: ${errorMessage(e)}`, 'error');
+        notify(t().week.createFailed(errorMessage(e)), 'error');
         await reload();
         return;
       }
       await reload();
       setChosenWeek(weekStart(date));
       notify(
-        created.length ? `Team A and Team B of ${formatEventDate(date)} are ready for registrations.` : `The events of ${formatEventDate(date)} already exist.`,
+        created.length ? t().week.created(formatEventDate(date)) : t().week.alreadyExist(formatEventDate(date)),
         'success',
       );
     },
@@ -256,11 +256,11 @@ export function useWeeklyEventViewModel() {
     try {
       await repos.events.delete(event.id);
     } catch (e) {
-      notify(`Could not delete the event: ${errorMessage(e)}`, 'error');
+      notify(t().week.deleteFailed(errorMessage(e)), 'error');
       return;
     }
     await reload();
-    notify(`${EVENT_SLOT_INFO[event.slot].team} of ${formatEventDate(event.date)} was deleted.`, 'info');
+    notify(t().week.deleted(teamOf(event.slot), formatEventDate(event.date)), 'info');
   }, [event, repos, reload, notify]);
 
   // ---------- step 1: registrations ----------
@@ -280,7 +280,7 @@ export function useWeeklyEventViewModel() {
     const registered = new Map(event?.registrations.map((r) => [r.memberId, r]) ?? []);
     const elsewhere = new Map<string, string>();
     for (const other of otherEvents) {
-      for (const r of other.registrations) elsewhere.set(r.memberId, `${EVENT_SLOT_INFO[other.slot].team}: ${r.substituteOnly ? 'sub only' : 'play'}`);
+      for (const r of other.registrations) elsewhere.set(r.memberId, t().week.otherEventNote(teamOf(other.slot), Boolean(r.substituteOnly)));
     }
     return [...members]
       .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }))
@@ -342,11 +342,11 @@ export function useWeeklyEventViewModel() {
         await repos.members.save(member);
       } catch (e) {
         // Shown in the form, which stays open so nothing typed is lost.
-        return { name: `Could not save: ${errorMessage(e)}` };
+        return { name: t().common.couldNotSave(errorMessage(e)) };
       }
       if (event && isEditable(event)) await mutateEvent((e) => setRegistered(e, member.id, true, 'manual', nowIso()));
       else await reload();
-      notify(`${member.name} added to the roster and registered.`, 'success');
+      notify(t().week.addedRegistered(member.name), 'success');
       return {};
     },
     [members, newId, nowIso, repos, event, mutateEvent, reload, notify],
@@ -364,12 +364,12 @@ export function useWeeklyEventViewModel() {
         const change = leaderPowerChange(member, updated, newId(), iso);
         if (change) await repos.powerChanges.saveMany([change]);
       } catch (e) {
-        notify(`Could not save ${member.name}'s power: ${errorMessage(e)}`, 'error');
+        notify(t().week.powerSaveFailed(member.name, errorMessage(e)), 'error');
         await reload();
         return;
       }
       await reload();
-      notify(`${member.name}: power set to ${formatPower(updated.power)}.`, 'success');
+      notify(t().week.powerSet(member.name, formatPower(updated.power)), 'success');
     },
     [memberById, nowIso, repos, newId, reload, notify],
   );
@@ -389,7 +389,7 @@ export function useWeeklyEventViewModel() {
       if (!event || !isEditable(event)) return;
       // Hard rule: no selection before Wednesday 10 PM (Paris), while players can still register.
       if (isRegistrationStillOpen(event.date, now())) {
-        notify(`The selection can only be run from ${formatEventDate(registrationCloseDate(event.date))}, 10 PM (Paris time).`, 'error');
+        notify(t().week.tooEarly(t().events.closeLabel(formatEventDate(registrationCloseDate(event.date)))), 'error');
         return;
       }
       const weekList = [event, ...otherEvents];
@@ -414,14 +414,18 @@ export function useWeeklyEventViewModel() {
       const mine = results[event.slot];
       if (!mine) return;
       const { eligible } = mine.summary;
-      const elsewhere = mine.assignments.filter((a) => a.slot === 'notSelected' && / this week/.test(a.reason)).length;
-      const parts = [
-        eligible > cap
-          ? `Selection done: ${eligible} eligible for ${cap} places – ${eligible - cap} without a place this week.`
-          : `Selection done: all ${eligible} eligible applicants are in.`,
-      ];
-      if (elsewhere > 0) parts.push(`${elsewhere} already play${elsewhere === 1 ? 's' : ''} in the other event.`);
-      if (scope === 'both') parts.push(`Both events planned (${order.map((s) => EVENT_SLOT_INFO[s].team).join(' first, then ')}).`);
+      // Registered here but listed in the other event of the week (its new plan, or its kept one).
+      const listedElsewhere = new Set(
+        EVENT_SLOTS.filter((s) => s !== event.slot).flatMap((s) =>
+          (results[s]?.assignments ?? weekList.find((e) => e.slot === s)?.assignments ?? [])
+            .filter((a) => a.slot !== 'notSelected')
+            .map((a) => a.memberId),
+        ),
+      );
+      const elsewhere = mine.assignments.filter((a) => a.slot === 'notSelected' && listedElsewhere.has(a.memberId)).length;
+      const parts = [eligible > cap ? t().week.selectionOver(eligible, cap) : t().week.selectionAll(eligible)];
+      if (elsewhere > 0) parts.push(t().week.elsewhere(elsewhere));
+      if (scope === 'both') parts.push(t().week.bothPlanned(order.map(teamOf)));
       notify(parts.join(' '), 'success');
     },
     [event, otherEvents, members, events, suspensions, settings, mutateEventById, now, nowIso, notify, cap],
@@ -432,7 +436,7 @@ export function useWeeklyEventViewModel() {
       const m = memberById.get(a.memberId);
       return {
         memberId: a.memberId,
-        name: m?.name ?? '(removed member)',
+        name: m?.name ?? t().common.removedMember,
         power: m?.power ?? 0,
         activity: m?.activity ?? 0,
         rank: m?.rank,
@@ -468,7 +472,7 @@ export function useWeeklyEventViewModel() {
       if (!event || !isEditable(event)) return;
       const conflict = placementConflict(memberId, to, otherEvents);
       if (conflict) {
-        notify(`${memberById.get(memberId)?.name ?? 'This player'}: ${conflict}`, 'error');
+        notify(`${memberById.get(memberId)?.name ?? t().week.thisPlayer}: ${conflict}`, 'error');
         return;
       }
       await mutateEvent((e) => replaceAssignments(e, moveAssignment(e.assignments, memberId, to), nowIso()));
@@ -486,7 +490,7 @@ export function useWeeklyEventViewModel() {
         (placementConflict(a, slotB, otherEvents) && { id: a, text: placementConflict(a, slotB, otherEvents) }) ||
         (placementConflict(b, slotA, otherEvents) && { id: b, text: placementConflict(b, slotA, otherEvents) });
       if (conflict) {
-        notify(`${memberById.get(conflict.id)?.name ?? 'This player'}: ${conflict.text}`, 'error');
+        notify(`${memberById.get(conflict.id)?.name ?? t().week.thisPlayer}: ${conflict.text}`, 'error');
         return;
       }
       await mutateEvent((e) => replaceAssignments(e, swapAssignments(e.assignments, a, b), nowIso()));
@@ -497,7 +501,7 @@ export function useWeeklyEventViewModel() {
   const keepPlanWithLateChanges = useCallback(async () => {
     if (!event || !isEditable(event)) return;
     await mutateEvent((e) => syncPlanWithRegistrations(e, nowIso(), otherEvents));
-    notify('Plan updated: late registrations added as last substitutes.', 'success');
+    notify(t().week.lateAdded, 'success');
   }, [event, otherEvents, mutateEvent, nowIso, notify]);
 
   // ---------- step 3: lock ----------
@@ -506,17 +510,17 @@ export function useWeeklyEventViewModel() {
   /** Opens attendance: freezes the lineup. Hard rule: only once the event has ended (A 21:30, B 12:30 Paris time). */
   const eventOver = event ? isEventOver(event, now()) : false;
   /** "Fri 21:30" – when attendance opens. */
-  const eventEndShort = event ? `${formatEventDate(event.date).split(' ')[0]} ${EVENT_SLOT_INFO[event.slot].endTime}` : '';
+  const eventEndShort = event ? `${formatWeekday(event.date)} ${EVENT_SLOT_INFO[event.slot].endTime}` : '';
   /** Running the selection before Wednesday 10 PM (Paris) cuts off players who could still register. */
   const registrationStillOpen = event ? isRegistrationStillOpen(event.date, now()) : false;
-  const registrationCloseLabel = event ? `${formatEventDate(registrationCloseDate(event.date))}, 10 PM (Paris time)` : '';
+  const registrationCloseLabel = event ? t().events.closeLabel(formatEventDate(registrationCloseDate(event.date))) : '';
   /** "Wed 22:00" – the short form for the join-link strip. */
-  const registrationCloseShort = event ? `${formatEventDate(registrationCloseDate(event.date)).split(' ')[0]} 22:00` : '';
+  const registrationCloseShort = event ? `${formatWeekday(registrationCloseDate(event.date))} 22:00` : '';
   const registrationClosesIn = event && registrationStillOpen ? formatDuration(registrationCloseAt(event.date).getTime() - now().getTime()) : '';
   const startAttendance = useCallback(async () => {
     if (!event || event.status === 'registration') return;
     if (!isEventOver(event, now())) {
-      notify(`Attendance can only be recorded once ${EVENT_SLOT_INFO[event.slot].team} has ended (${eventEndShort}, Paris time).`, 'error');
+      notify(t().week.attendanceTooEarly(teamOf(event.slot), eventEndShort), 'error');
       return;
     }
     await mutateEvent((e) => lockEvent(e, nowIso()));
@@ -550,7 +554,7 @@ export function useWeeklyEventViewModel() {
 
   const copyPlan = useCallback(async () => {
     const ok = await copyText(planText);
-    notify(ok ? 'Plan copied – paste it in the alliance chat.' : 'Could not copy automatically. Select the text and copy it.', ok ? 'success' : 'warning');
+    notify(ok ? t().week.planCopied : t().week.planCopyFailed, ok ? 'success' : 'warning');
   }, [planText, notify]);
 
   // ---------- step 3: buildings + shared image ----------
@@ -565,7 +569,7 @@ export function useWeeklyEventViewModel() {
   const buildingBoard = useMemo(() => {
     const toPlayer = (memberId: string, overridden: boolean) => {
       const m = memberById.get(memberId);
-      return { memberId, name: m?.name ?? '(removed member)', power: m?.power ?? 0, overridden };
+      return { memberId, name: m?.name ?? t().common.removedMember, power: m?.power ?? 0, overridden };
     };
     const byBuilding = buildingsById(buildingPlan);
     return {
@@ -594,7 +598,7 @@ export function useWeeklyEventViewModel() {
     async (memberId: string, to: BuildingId) => {
       if (!event || !buildingsEditable) return;
       if (!buildingHasRoom(buildingPlan, to)) {
-        notify(`${BUILDING_INFO[to].label} is full – swap with one of its players instead.`, 'warning');
+        notify(t().week.buildingFull(BUILDING_INFO[to].label), 'warning');
         return;
       }
       await mutateEvent((e) => {
@@ -617,7 +621,7 @@ export function useWeeklyEventViewModel() {
   const resetBuildings = useCallback(async () => {
     if (!event || !buildingsEditable) return;
     await mutateEvent((e) => resetBuildingPlan(e, nowIso()));
-    notify('Buildings filled again from power.', 'success');
+    notify(t().week.refilled, 'success');
   }, [event, buildingsEditable, mutateEvent, nowIso, notify]);
 
   const buildingImageContent = useMemo(
@@ -642,7 +646,7 @@ export function useWeeklyEventViewModel() {
         setBuildingImage({ url: URL.createObjectURL(blob), blob, eventId });
       })
       .catch((e: unknown) => {
-        if (!cancelled) setBuildingImageError(`Could not draw the image: ${errorMessage(e)}`);
+        if (!cancelled) setBuildingImageError(t().week.drawFailed(errorMessage(e)));
       });
     return () => {
       cancelled = true;
@@ -681,9 +685,9 @@ export function useWeeklyEventViewModel() {
       try {
         const files = await renderImages(scope);
         for (const file of files) downloadBlob(file, file.name);
-        if (files.length) notify(files.length === 1 ? `Image saved: ${files[0]!.name}` : `${files.length} images saved.`, 'success');
+        if (files.length) notify(files.length === 1 ? t().week.imageSaved(files[0]!.name) : t().week.imagesSaved(files.length), 'success');
       } catch (e) {
-        notify(`Could not create the image: ${errorMessage(e)}`, 'error');
+        notify(t().week.imageFailed(errorMessage(e)), 'error');
       }
     },
     [renderImages, notify],
@@ -696,10 +700,10 @@ export function useWeeklyEventViewModel() {
       try {
         const files = await renderImages(scope);
         if (!files.length) return;
-        const ok = await shareFiles(files, `Desert Storm ${EVENT_SLOT_INFO[event.slot].team} – ${formatEventDate(event.date)}`);
-        if (!ok) notify('Sharing was cancelled or is not available – use Download instead.', 'info');
+        const ok = await shareFiles(files, t().week.shareTitle(teamOf(event.slot), formatEventDate(event.date)));
+        if (!ok) notify(t().week.shareCancelled, 'info');
       } catch (e) {
-        notify(`Could not share the image: ${errorMessage(e)}`, 'error');
+        notify(t().week.shareFailed(errorMessage(e)), 'error');
       }
     },
     [renderImages, event, notify],
@@ -723,7 +727,7 @@ export function useWeeklyEventViewModel() {
       const allowed = ids.filter((id) => !blocked.includes(id));
       setAttendanceOcrIds(new Set(allowed));
       if (blocked.length) {
-        notify(`Not marked (already played the other event this week): ${blocked.map((id) => memberById.get(id)?.name ?? id).join(', ')}.`, 'warning');
+        notify(t().week.notMarked(blocked.map((id) => memberById.get(id)?.name ?? id).join(', ')), 'warning');
       }
       void mutateEvent((latest) => {
         const e = forAttendance(latest);
@@ -758,7 +762,7 @@ export function useWeeklyEventViewModel() {
       try {
         if (updated !== member) await repos.members.save(updated);
       } catch (e) {
-        notify(`Could not remember “${guess}” for ${member.name}: ${errorMessage(e)}`, 'error');
+        notify(t().week.aliasFailed(guess, member.name, errorMessage(e)), 'error');
         return;
       }
       if (target === 'poll') {
@@ -772,7 +776,7 @@ export function useWeeklyEventViewModel() {
           return e ? markAttendedMany(e, [memberId], nowIso()) : null;
         });
       }
-      notify(`“${guess}” will be recognised as ${member.name} from now on.`, 'success');
+      notify(t().week.aliasSaved(guess, member.name), 'success');
     },
     [memberById, event, otherEvents, nowIso, repos, mutateEvent, reload, notify, pollOcr, attendanceOcr, forAttendance],
   );
@@ -801,7 +805,7 @@ export function useWeeklyEventViewModel() {
       const willAttend = !(event.attendance.find((a) => a.memberId === memberId)?.attended ?? false);
       const conflict = willAttend ? attendanceConflict(memberId, otherEvents) : null;
       if (conflict) {
-        notify(`${memberById.get(memberId)?.name ?? 'This player'}: ${conflict}`, 'error');
+        notify(`${memberById.get(memberId)?.name ?? t().week.thisPlayer}: ${conflict}`, 'error');
         return;
       }
       await mutateEvent((latest) => {
@@ -849,9 +853,7 @@ export function useWeeklyEventViewModel() {
     } catch (e) {
       await reload();
       notify(
-        e instanceof ConflictError
-          ? 'Someone else changed this event (or finalised the other event of the week) meanwhile. Review the latest data and finalise again.'
-          : `Could not finalise: ${errorMessage(e)}`,
+        e instanceof ConflictError ? t().week.finaliseConflict : t().week.finaliseFailed(errorMessage(e)),
         'error',
       );
       return;
@@ -863,8 +865,8 @@ export function useWeeklyEventViewModel() {
     setAttendanceOcrIds(new Set());
     notify(
       result.issued.length
-        ? `${EVENT_SLOT_INFO[event.slot].team} finalised. ${result.issued.length} no-show${result.issued.length === 1 ? '' : 's'} suspended for ${pluralise(settings.suspensionEvents, 'week')}.`
-        : `${EVENT_SLOT_INFO[event.slot].team} finalised. No penalties.`,
+        ? t().week.finalisedWithPenalties(teamOf(event.slot), result.issued.length, t().count.week(settings.suspensionEvents))
+        : t().week.finalisedNoPenalties(teamOf(event.slot)),
       'success',
     );
   }, [event, otherEvents, suspensions, settings, nowIso, newId, repos, reload, attendanceOcr, pollOcr, notify]);
@@ -877,7 +879,7 @@ export function useWeeklyEventViewModel() {
         if (!response.ok) throw new Error(String(response.status));
         return await response.blob();
       } catch {
-        notify('Could not load the sample screenshot.', 'error');
+        notify(t().week.sampleFailed, 'error');
         return null;
       }
     },
@@ -903,7 +905,7 @@ export function useWeeklyEventViewModel() {
     return {
       label: formatEventDate(week[0]?.date ?? key),
       played: week.reduce((n, e) => n + e.attendance.filter((a) => a.attended).length, 0),
-      suspendedNames: issued.map((s) => memberById.get(s.memberId)?.name ?? '(removed member)'),
+      suspendedNames: issued.map((s) => memberById.get(s.memberId)?.name ?? t().common.removedMember),
     };
   }, [events, suspensions, memberById]);
 
@@ -911,8 +913,8 @@ export function useWeeklyEventViewModel() {
     () =>
       EVENT_SLOTS.map((s) => ({
         slot: s,
-        team: EVENT_SLOT_INFO[s].team,
-        timeLabel: EVENT_SLOT_INFO[s].timeLabel,
+        team: teamOf(s),
+        timeLabel: t().events.timeLabel(s),
         shortTime: `${EVENT_SLOT_INFO[s].startHour}:00`,
         status: weekEvents[s]?.status ?? null,
         registered: weekEvents[s]?.registrations.length ?? 0,
@@ -945,7 +947,7 @@ export function useWeeklyEventViewModel() {
   const copyJoinLink = useCallback(async () => {
     if (!joinLink) return;
     const ok = await copyText(joinLink);
-    notify(ok ? 'Join link copied – share it in the alliance chat.' : 'Could not copy automatically.', ok ? 'success' : 'warning');
+    notify(ok ? t().common.joinLinkCopied : t().common.copyFailed, ok ? 'success' : 'warning');
   }, [joinLink, notify]);
   /** Leaders sign themselves up through the same join page, inside the app (it offers a way back). */
   const openJoinPage = useCallback(() => {
@@ -957,8 +959,8 @@ export function useWeeklyEventViewModel() {
     hasMembers: members.length > 0,
     event,
     slot,
-    team: EVENT_SLOT_INFO[slot].team,
-    timeLabel: EVENT_SLOT_INFO[slot].timeLabel,
+    team: teamOf(slot),
+    timeLabel: t().events.timeLabel(slot),
     eventTabs,
     selectSlot,
     weekKey: event ? weekKeyOf(event) : weekKey,

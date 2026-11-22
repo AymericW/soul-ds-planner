@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import type { BuildingId } from '@/models/Building';
 import { formatPower } from '@/helpers/format';
 
@@ -32,7 +33,7 @@ function Chip({ player, onSelect, highlighted }: { player: BuildingPlayerData; o
     <>
       <span className="building-chip__name">{player.name}</span>
       <span className="building-chip__meta">{formatPower(player.power)}</span>
-      {player.overridden && <span className="badge badge--warning">Manual</span>}
+      {player.overridden && <span className="badge badge--warning">{t().week.manual}</span>}
     </>
   );
   return onSelect ? (
@@ -62,16 +63,16 @@ export function BuildingBoard({ board, onSelectPlayer, selectedId }: BuildingBoa
             ))}
             {Array.from({ length: Math.max(0, b.capacity - b.players.length) }, (_, i) => (
               <div key={`empty-${i}`} className="building-chip building-chip--empty">
-                free
+                {t().week.free}
               </div>
             ))}
           </div>
         </section>
       ))}
       {board.unplaced.length > 0 && (
-        <section className="building building--unplaced" aria-label="Not placed">
+        <section className="building building--unplaced" aria-label={t().week.notPlaced}>
           <header className="building__header">
-            <h3 className="building__title">Not placed</h3>
+            <h3 className="building__title">{t().week.notPlaced}</h3>
             <span className="building__count">{board.unplaced.length}</span>
           </header>
           <div className="building__list">

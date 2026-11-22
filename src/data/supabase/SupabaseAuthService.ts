@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import type { Account, AccountRole } from '@/models/Account';
 import { AuthError, type AuthService, type AuthSession } from '../auth';
@@ -33,7 +34,7 @@ export function createSupabaseAuthService(client: SupabaseClient): AuthService {
     },
     async signIn(email, password) {
       const { error } = await client.auth.signInWithPassword({ email: email.trim(), password });
-      if (error) throw new AuthError(error.status === 400 ? 'Wrong email or password.' : error.message);
+      if (error) throw new AuthError(error.status === 400 ? t().services.wrongPassword : error.message);
     },
     async signOut() {
       await client.auth.signOut();

@@ -1,4 +1,4 @@
-import { EVENT_SLOT_INFO } from '@/constants/events';
+import { t } from '@/helpers/i18n';
 import { finalisedWeeks, weeksBefore } from '@/domain/history/weekHistory';
 import { isSuspended } from '@/domain/penalties/suspensions';
 import { weekStart } from '@/helpers/dates';
@@ -113,8 +113,8 @@ export function selectWeek(input: WeekSelectionInput): WeekSelectionResult {
         starterScarcity(bySlot.get(b)!, members, suspensions, settings, excluded) || EVENT_SLOTS.indexOf(a) - EVENT_SLOTS.indexOf(b),
   );
   const [first, second] = order as [EventSlot, EventSlot];
-  const firstTeam = EVENT_SLOT_INFO[first].team;
-  const secondTeam = EVENT_SLOT_INFO[second].team;
+  const firstTeam = t().events.team(first);
+  const secondTeam = t().events.team(second);
 
   const firstBlocked = new Map(fixedBlocked);
   let resultFirst = run(first, firstBlocked);
@@ -123,17 +123,17 @@ export function selectWeek(input: WeekSelectionInput): WeekSelectionResult {
   // Each extra round adds at least one member to firstBlocked, so this ends.
   for (let round = 0; ; round++) {
     secondBlocked = new Map(fixedBlocked);
-    for (const id of starters(resultFirst)) secondBlocked.set(id, `Starter in ${firstTeam} this week`);
+    for (const id of starters(resultFirst)) secondBlocked.set(id, t().rules.starterIn(firstTeam));
     resultSecond = run(second, secondBlocked);
     const moved = starters(resultSecond).filter((id) => listed(resultFirst, id) && !firstBlocked.has(id));
     if (moved.length === 0 || round > members.length) break;
-    for (const id of moved) firstBlocked.set(id, `Starter in ${secondTeam} this week`);
+    for (const id of moved) firstBlocked.set(id, t().rules.starterIn(secondTeam));
     resultFirst = run(first, firstBlocked);
   }
   // A substitute of the first event cannot also be a substitute in the second one.
   const doubleSubs = substitutes(resultFirst).filter((id) => listed(resultSecond, id));
   if (doubleSubs.length > 0) {
-    for (const id of substitutes(resultFirst)) secondBlocked.set(id, `Substitute in ${firstTeam} this week`);
+    for (const id of substitutes(resultFirst)) secondBlocked.set(id, t().rules.substituteIn(firstTeam));
     resultSecond = run(second, secondBlocked);
   }
   return { results: { [first]: resultFirst, [second]: resultSecond }, order };

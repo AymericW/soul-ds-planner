@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 /** 152300000 -> "152.3M", 950000 -> "950K", 1.2e9 -> "1.20B". */
 export function formatPower(power: number): string {
   if (!Number.isFinite(power) || power <= 0) return '0';
@@ -55,14 +57,14 @@ export function formatDuration(ms: number): string {
   const days = Math.floor(minutes / 1440);
   const hours = Math.floor((minutes % 1440) / 60);
   const mins = minutes % 60;
-  if (days > 0) return `${days} d ${hours} h`;
-  if (hours > 0) return `${hours} h ${mins} m`;
-  return `${mins} m`;
+  if (days > 0) return t().format.durationDays(days, hours);
+  if (hours > 0) return t().format.durationHours(hours, mins);
+  return t().format.durationMinutes(mins);
 }
 
 /** "0 weeks ago" reads badly; 0 => "last week". */
 export function formatWeeksAgo(weeksAgo: number | null): string {
-  if (weeksAgo === null) return 'never';
-  if (weeksAgo === 0) return 'last week';
-  return `${pluralise(weeksAgo, 'week')} ago`;
+  if (weeksAgo === null) return t().format.never;
+  if (weeksAgo === 0) return t().format.lastWeek;
+  return t().format.weeksAgo(weeksAgo);
 }

@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { ACTIVITY_MAX, ACTIVITY_MIN, DEFAULT_ACTIVITY } from '@/constants/rules';
 import { cleanDisplayName, normaliseName } from '@/helpers/normalise';
 import type { Member, MemberDraft } from '@/models/Member';
@@ -18,13 +19,13 @@ export function validateMemberDraft(
   const errors: MemberDraftErrors = {};
   const name = cleanDisplayName(draft.name);
   const key = normaliseName(name);
-  if (!key) errors.name = 'Name is required.';
+  if (!key) errors.name = t().rules.nameRequired;
   else if (existing.some((m) => m.id !== editingId && normaliseName(m.name) === key)) {
-    errors.name = 'A member with this name already exists.';
+    errors.name = t().rules.nameDuplicate;
   }
-  if (!Number.isFinite(draft.power) || draft.power < 0) errors.power = 'Power must be a positive number (e.g. 152.3M).';
+  if (!Number.isFinite(draft.power) || draft.power < 0) errors.power = t().rules.powerPositive;
   if (!Number.isInteger(draft.activity) || draft.activity < ACTIVITY_MIN || draft.activity > ACTIVITY_MAX) {
-    errors.activity = `Activity must be between ${ACTIVITY_MIN} and ${ACTIVITY_MAX}.`;
+    errors.activity = t().rules.activityRange(ACTIVITY_MIN, ACTIVITY_MAX);
   }
   return errors;
 }

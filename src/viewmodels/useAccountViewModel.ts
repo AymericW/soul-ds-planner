@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useCallback, useEffect, useState } from 'react';
 import { canChangeRole } from '@/domain/accounts/permissions';
 import type { Account, AccountRole } from '@/models/Account';
@@ -19,7 +20,7 @@ export function useAccountViewModel() {
     try {
       setAccounts(await auth.listAccounts());
     } catch (e) {
-      notify(e instanceof Error ? e.message : 'Could not load accounts.', 'error');
+      notify(e instanceof Error ? e.message : t().account.couldNotLoad, 'error');
     }
   }, [auth, isAdmin, notify]);
 
@@ -29,13 +30,13 @@ export function useAccountViewModel() {
 
   const changePassword = useCallback(
     async (password: string): Promise<string | null> => {
-      if (password.length < MIN_PASSWORD_LENGTH) return `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+      if (password.length < MIN_PASSWORD_LENGTH) return t().account.passwordTooShort(MIN_PASSWORD_LENGTH);
       try {
         await auth.changePassword(password);
-        notify('Password changed.', 'success');
+        notify(t().account.passwordChanged, 'success');
         return null;
       } catch (e) {
-        return e instanceof Error ? e.message : 'Could not change the password.';
+        return e instanceof Error ? e.message : t().account.couldNotChangePassword;
       }
     },
     [auth, notify],
@@ -45,9 +46,9 @@ export function useAccountViewModel() {
     async (target: Account, role: AccountRole) => {
       try {
         await auth.setRole(target.id, role);
-        notify(`${target.email} is now ${role.toUpperCase()}.`, 'success');
+        notify(t().account.roleChanged(target.email, role.toUpperCase()), 'success');
       } catch (e) {
-        notify(e instanceof Error ? e.message : 'Could not change the role.', 'error');
+        notify(e instanceof Error ? e.message : t().account.couldNotChangeRole, 'error');
       }
       await loadAccounts();
     },

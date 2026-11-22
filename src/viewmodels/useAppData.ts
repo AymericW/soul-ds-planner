@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useCallback, useEffect, useState } from 'react';
 import { DEFAULT_SETTINGS } from '@/constants/defaults';
 import type { JoinRequest } from '@/models/JoinRequest';
@@ -39,7 +40,7 @@ export function useAppData() {
       setData({ members, events, suspensions, settings, joinRequests, powerChanges });
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load data.');
+      setError(e instanceof Error ? e.message : t().common.couldNotLoadData);
     } finally {
       setLoading(false);
     }

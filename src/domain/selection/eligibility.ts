@@ -1,8 +1,8 @@
+import { t } from '@/helpers/i18n';
 import type { Member } from '@/models/Member';
 import type { Registration } from '@/models/Registration';
 import type { Suspension } from '@/models/Suspension';
 import { remainingSuspension } from '@/domain/penalties/suspensions';
-import { pluralise } from '@/helpers/format';
 
 export interface IneligibleApplicant {
   memberId: string;
@@ -30,9 +30,9 @@ export function splitEligibility(
     const member = byId.get(reg.memberId);
     if (!member) continue;
     const suspended = remainingSuspension(member.id, suspensions);
-    if (!member.active) ineligible.push({ memberId: member.id, reason: 'Inactive member – not eligible.' });
+    if (!member.active) ineligible.push({ memberId: member.id, reason: t().rules.inactive });
     else if (suspended > 0) {
-      ineligible.push({ memberId: member.id, reason: `Suspended – ${pluralise(suspended, 'week')} left (no-show without notice).` });
+      ineligible.push({ memberId: member.id, reason: t().rules.suspended(t().count.week(suspended)) });
     } else eligible.push(member);
   }
   return { eligible, ineligible };

@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { finalisedWeeks, playedLastWeek, weeksSinceLastPlayed, type WeekRecord } from '@/domain/history/weekHistory';
 import { computeRelativeScores } from '@/domain/scoring/relativeScore';
 import { formatWeeksAgo } from '@/helpers/format';
@@ -51,9 +52,9 @@ function pct(ratio: number): string {
 }
 
 function historyNote(c: Candidate): string {
-  if (c.weeksSinceLastPlayed === null) return 'never played yet';
-  if (c.playedLastWeek) return 'played last week';
-  return `didn't play last week (last played ${formatWeeksAgo(c.weeksSinceLastPlayed)})`;
+  if (c.weeksSinceLastPlayed === null) return t().rules.neverPlayed;
+  if (c.playedLastWeek) return t().rules.playedLastWeek;
+  return t().rules.didNotPlayLastWeek(formatWeeksAgo(c.weeksSinceLastPlayed));
 }
 
 /**
@@ -104,7 +105,8 @@ export function runSelection(input: SelectionInput): SelectionResult {
   const substitutes = [...otherSubs.substitutes, ...volunteerSubs.substitutes];
   const notSelected = [...otherSubs.notSelected, ...volunteerSubs.notSelected];
   const cap = registrationCap(settings);
-  const volunteerNote = (id: string) => forcedSub.get(id) ?? 'volunteered as substitute';
+  const r = t().rules;
+  const volunteerNote = (id: string) => forcedSub.get(id) ?? r.volunteered;
 
   const assignments: Assignment[] = [];
   const push = (slot: Slot, list: Candidate[], reason: (c: Candidate, i: number) => string) =>
@@ -115,19 +117,21 @@ export function runSelection(input: SelectionInput): SelectionResult {
   push(
     'core',
     core,
-    (c, i) =>
-      `Core #${i + 1} · score ${c.score.score.toFixed(2)} (power ${pct(c.score.powerRatio)} of top, activity ${c.member.activity}/5)`,
+    (c, i) => r.coreReason(i + 1, c.score.score.toFixed(2), pct(c.score.powerRatio), c.member.activity),
   );
-  push('rotation', rotation, (c, i) => `Rotation #${i + 1} · ${historyNote(c)}`);
+  push('rotation', rotation, (c, i) => r.rotationReason(i + 1, historyNote(c)));
   push(
     'substitute',
     substitutes,
-    (c, i) => `Substitute #${i + 1} · ${volunteerIds.has(c.member.id) ? volunteerNote(c.member.id) : historyNote(c)}`,
+    (c, i) => r.substituteReason(i + 1, volunteerIds.has(c.member.id) ? volunteerNote(c.member.id) : historyNote(c)),
   );
   push('notSelected', notSelected, (c) =>
     volunteerIds.has(c.member.id)
-      ? `${forcedSub.has(c.member.id) ? `Substitute only (${volunteerNote(c.member.id)})` : 'Volunteered as substitute'} · all ${Math.max(0, settings.substitutes)} substitute places are taken`
-      : `No place left (${cap} places) · lower rotation priority (${historyNote(c)})`,
+      ? r.substitutesFull(
+          forcedSub.has(c.member.id) ? r.substituteOnly(volunteerNote(c.member.id)) : r.volunteeredCapital,
+          Math.max(0, settings.substitutes),
+        )
+      : r.noPlaceLeft(cap, historyNote(c)),
   );
   [...ineligible, ...blockedApplicants].forEach((x, i) =>
     assignments.push({ memberId: x.memberId, slot: 'notSelected', order: notSelected.length + i, reason: x.reason }),

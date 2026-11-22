@@ -1,6 +1,6 @@
+import { t } from '@/helpers/i18n';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_ACTIVITY } from '@/constants/rules';
-import { EVENT_SLOT_INFO } from '@/constants/events';
 import { ConflictError, type Repositories } from '@/data/repositories';
 import { isEditable } from '@/domain/events/eventLifecycle';
 import { weekEventId } from '@/domain/events/weekEvents';
@@ -52,12 +52,14 @@ async function mutateStoredEvent(repos: Repositories, id: string, change: (e: We
   }
 }
 
-const CHOICE_LABEL = { none: 'not available', play: 'play', sub: 'sub only' } as const;
+const choiceLabel = (choice: 'none' | 'play' | 'sub'): string =>
+  ({ none: t().requests.choiceNone, play: t().requests.choicePlay, sub: t().requests.choiceSub })[choice];
 
 function summary(name: string, registered: string[], skipped: string[]): string {
-  const done = registered.length ? `registered for ${registered.join(' and ')}` : 'no registration added';
-  const note = skipped.length ? ` (${skipped.join(' and ')} no longer open or missing – add them by hand if needed)` : '';
-  return `${name}: ${done}${note}.`;
+  const m = t().requests;
+  const done = registered.length ? m.registeredFor(registered.join(m.and)) : m.noRegistration;
+  const note = skipped.length ? m.skipped(skipped.join(m.and)) : '';
+  return m.summary(name, done, note);
 }
 
 /** Leaders' inbox: unlisted players asking to join, and self-reported power changes to review. */
@@ -68,7 +70,7 @@ export function useRequestsViewModel() {
   const data = useAppData();
   const { members, settings, joinRequests, powerChanges, reload } = data;
   const [busyId, setBusyId] = useState<string | null>(null);
-  const resolvedBy = account?.displayName || account?.email || 'leader';
+  const resolvedBy = account?.displayName || account?.email || t().requests.leader;
   const memberById = useMemo(() => new Map(members.map((m) => [m.id, m])), [members]);
 
   const requests = useMemo<JoinRequestView[]>(
@@ -76,7 +78,7 @@ export function useRequestsViewModel() {
       pendingJoinRequests(joinRequests).map((request) => ({
         request,
         weekLabel: formatEventDate(request.weekDate),
-        choicesLabel: EVENT_SLOTS.map((s) => `${EVENT_SLOT_INFO[s].team}: ${CHOICE_LABEL[request.choices[s]]}`).join(' · '),
+        choicesLabel: EVENT_SLOTS.map((s) => `${t().events.team(s)}: ${choiceLabel(request.choices[s])}`).join(' · '),
         suggestions: suggestMembersForName(request.name, members),
       })),
     [joinRequests, members],
@@ -89,7 +91,7 @@ export function useRequestsViewModel() {
         const rosterPower = member?.power ?? change.oldPower;
         return {
           change,
-          memberName: member?.name ?? '(removed member)',
+          memberName: member?.name ?? t().common.removedMember,
           rosterPower,
           delta: rosterPower > 0 ? change.newPower / rosterPower - 1 : null,
         };
@@ -103,7 +105,7 @@ export function useRequestsViewModel() {
       try {
         notify(await action(), 'success');
       } catch (e) {
-        notify(`Could not save: ${e instanceof Error ? e.message : 'unknown error'}`, 'error');
+        notify(t().common.couldNotSave(e instanceof Error ? e.message : t().common.unknownError), 'error');
       } finally {
         setBusyId(null);
         await reload();
@@ -120,7 +122,7 @@ export function useRequestsViewModel() {
       for (const slot of EVENT_SLOTS) {
         const choice = request.choices[slot];
         if (choice === 'none') continue;
-        const team = EVENT_SLOT_INFO[slot].team;
+        const team = t().events.team(slot);
         const ok = await mutateStoredEvent(repos, weekEventId(request.weekDate, slot), (e) =>
           isEditable(e) ? applyJoinChoice(e, member.id, choice, request.power, request.updatedAt) : null,
         );
@@ -147,7 +149,7 @@ export function useRequestsViewModel() {
     (request: JoinRequest, memberId: string) =>
       run(request.id, async () => {
         const member = memberById.get(memberId);
-        if (!member) throw new Error('Member not found.');
+        if (!member) throw new Error(t().requests.memberNotFound);
         const nowIso = now().toISOString();
         const withAlias = addAlias(member, request.name, nowIso);
         const { registered, skipped, member: updated } = await registerFromRequest(request, withAlias, nowIso);
@@ -165,12 +167,12 @@ export function useRequestsViewModel() {
         const nowIso = now().toISOString();
         const draft = { name: request.name, power: request.power, activity: DEFAULT_ACTIVITY, active: true };
         const errors = validateMemberDraft(draft, members);
-        if (errors.name) throw new Error(`${errors.name} Use “This is…” to link the request to that member instead.`);
+        if (errors.name) throw new Error(t().requests.useThisIs(errors.name));
         const member = createMember(draft, newId(), nowIso);
         const { registered, skipped } = await registerFromRequest(request, member, nowIso);
         await repos.members.save(member);
         await repos.joinRequests.save(resolveJoinRequest(request, 'approved', resolvedBy, nowIso, member.id));
-        return `${member.name} added to the roster. ${summary(member.name, registered, skipped)}`;
+        return t().requests.added(member.name, summary(member.name, registered, skipped));
       }),
     [run, now, members, newId, registerFromRequest, repos, resolvedBy],
   );
@@ -179,7 +181,7 @@ export function useRequestsViewModel() {
     (request: JoinRequest) =>
       run(request.id, async () => {
         await repos.joinRequests.save(resolveJoinRequest(request, 'rejected', resolvedBy, now().toISOString()));
-        return `Request of ${request.name} dismissed.`;
+        return t().requests.dismissed(request.name);
       }),
     [run, repos, resolvedBy, now],
   );
@@ -191,7 +193,7 @@ export function useRequestsViewModel() {
         const result = resolvePowerChange(change, approve, member, resolvedBy, now().toISOString());
         if (result.member) await repos.members.save(result.member);
         await repos.powerChanges.saveMany([result.change]);
-        return approve ? `${member?.name ?? 'Member'}: power updated.` : 'Power change rejected; the roster keeps its value.';
+        return approve ? t().requests.powerUpdated(member?.name ?? t().requests.member) : t().requests.powerRejected;
       }),
     [run, memberById, resolvedBy, now, repos],
   );

@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { EVENT_TIME_ZONE, JOIN_DEADLINE_DAYS_BEFORE, JOIN_DEADLINE_TIME } from '@/constants/events';
 import { JOIN_CODE_ALPHABET, JOIN_CODE_LENGTH, JOIN_LIMITS } from '@/constants/rules';
 import { addDays, dateInTimeZone, timeInTimeZone } from '@/helpers/dates';
@@ -30,9 +31,9 @@ export function generateJoinCode(random: () => number = Math.random): string {
 
 /** Error message for a self-reported power, or null when acceptable. */
 export function validateJoinPower(power: number | undefined): string | null {
-  if (power === undefined || !Number.isFinite(power)) return 'Write your power like 152.3M or 152300000.';
+  if (power === undefined || !Number.isFinite(power)) return t().rules.joinPowerFormat;
   if (power < JOIN_LIMITS.powerMin || power > JOIN_LIMITS.powerMax) {
-    return `Power must be between ${formatPower(JOIN_LIMITS.powerMin)} and ${formatPower(JOIN_LIMITS.powerMax)}.`;
+    return t().rules.joinPowerRange(formatPower(JOIN_LIMITS.powerMin), formatPower(JOIN_LIMITS.powerMax));
   }
   return null;
 }
@@ -40,8 +41,8 @@ export function validateJoinPower(power: number | undefined): string | null {
 /** Error message for the name typed in "I'm not in the list", or null. */
 export function validateUnlistedName(raw: string): string | null {
   const name = cleanDisplayName(raw);
-  if (normaliseName(name).length < JOIN_LIMITS.nameMinLength) return 'Write your in-game name.';
-  if (name.length > JOIN_LIMITS.nameMaxLength) return `Names are at most ${JOIN_LIMITS.nameMaxLength} characters.`;
+  if (normaliseName(name).length < JOIN_LIMITS.nameMinLength) return t().rules.joinNameMissing;
+  if (name.length > JOIN_LIMITS.nameMaxLength) return t().rules.joinNameTooLong(JOIN_LIMITS.nameMaxLength);
   return null;
 }
 

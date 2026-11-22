@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { parseCsv } from '@/helpers/csv';
 import type { RosterImportParseResult } from '@/models/RosterImport';
 import { parseRosterTable } from './rosterTableParser';
@@ -26,7 +27,7 @@ export function createImportService(): ImportService {
     async readRosterFile(file) {
       if (isSpreadsheet(file)) return parseRosterTable(await readSpreadsheetTable(file));
       if (isText(file)) return parseRosterTable(parseCsv(await file.text()));
-      throw new UnsupportedFileError('Please choose a .csv or .xlsx file.');
+      throw new UnsupportedFileError(t().services.importFileType);
     },
   };
 }

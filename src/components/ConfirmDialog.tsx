@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useState, type ReactNode } from 'react';
 import { Modal } from './Modal';
 
@@ -34,7 +35,7 @@ export function ConfirmDialog({ title, message, confirmLabel, danger, requireTex
       footer={
         <>
           <button type="button" className="button button--ghost" onClick={onCancel}>
-            Cancel
+            {t().common.cancel}
           </button>
           <button
             type="button"
@@ -51,7 +52,7 @@ export function ConfirmDialog({ title, message, confirmLabel, danger, requireTex
       {requireText && (
         <label className="field">
           <span className="field__label">
-            Type <strong>{requireText}</strong> to confirm
+            {t().settings.typeToConfirmBefore} <strong>{requireText}</strong> {t().settings.typeToConfirmAfter}
           </span>
           <input className="input" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
         </label>

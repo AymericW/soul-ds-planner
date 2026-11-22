@@ -16,12 +16,8 @@ export const JOIN_DEADLINE_TIME = '22:00';
 export const REGISTRATION_CLOSE_DAYS_BEFORE = JOIN_DEADLINE_DAYS_BEFORE;
 export const REGISTRATION_CLOSE_HOUR = Number(JOIN_DEADLINE_TIME.slice(0, 2));
 
+/** Texts (team name, time labels) are in the i18n dictionaries: `t().events`. */
 export interface EventSlotInfo {
-  team: string;
-  /** Start time shown to leaders. */
-  timeLabel: string;
-  /** Start time on the public join page (12h and 24h, players are international). */
-  joinTimeLabel: string;
   /** Start hour, Paris time (orders the two events of one day: Team B plays first). */
   startHour: number;
   /** End of the event, Paris time ("HH:MM"): attendance can only be recorded from then on. */
@@ -29,6 +25,6 @@ export interface EventSlotInfo {
 }
 
 export const EVENT_SLOT_INFO: Readonly<Record<EventSlot, EventSlotInfo>> = Object.freeze({
-  A: { team: 'Team A', timeLabel: '9 PM (Paris time)', joinTimeLabel: '9 PM (21h) Paris time', startHour: 21, endTime: '21:30' },
-  B: { team: 'Team B', timeLabel: '12 PM (Paris time)', joinTimeLabel: '12 PM (12h) Paris time', startHour: 12, endTime: '12:30' },
+  A: { startHour: 21, endTime: '21:30' },
+  B: { startHour: 12, endTime: '12:30' },
 });

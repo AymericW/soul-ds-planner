@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useState } from 'react';
 import { AccountSection } from '@/screens/AccountSection';
 import { AppUpdateSection } from '@/screens/AppUpdateSection';
@@ -16,42 +17,42 @@ export function SettingsScreen() {
   const [confirmCode, setConfirmCode] = useState(false);
   const d = vm.draft;
   const hasErrors = Object.keys(vm.errors).length > 0;
+  const m = t().settings;
+  const slots = t().slots;
 
   return (
     <section className="screen">
       <div className="screen__head">
-        <h1 className="screen__title">Settings</h1>
-        <p className="muted small">Rules used by the weekly selection. Changes apply from the next “Run selection”.</p>
+        <h1 className="screen__title">{m.title}</h1>
+        <p className="muted small">{m.subtitle}</p>
       </div>
 
       <div className="card settings-card">
-        <h2 className="card__title">Places per event (Team A and Team B each)</h2>
-        <NumberStepper label="Core starters" value={d.coreStarters} {...SETTINGS_LIMITS.coreStarters} error={vm.errors.coreStarters} onChange={(v) => vm.setCount('coreStarters', v)} hint="Picked by relative score (power + activity)." />
-        <NumberStepper label="Rotation starters" value={d.rotationStarters} {...SETTINGS_LIMITS.rotationStarters} error={vm.errors.rotationStarters} onChange={(v) => vm.setCount('rotationStarters', v)} hint="Fair turn for those who waited longest." />
-        <NumberStepper label="Substitutes" value={d.substitutes} {...SETTINGS_LIMITS.substitutes} error={vm.errors.substitutes} onChange={(v) => vm.setCount('substitutes', v)} />
+        <h2 className="card__title">{m.places}</h2>
+        <NumberStepper label={slots.coreStarters} value={d.coreStarters} {...SETTINGS_LIMITS.coreStarters} error={vm.errors.coreStarters} onChange={(v) => vm.setCount('coreStarters', v)} hint={m.coreHint} />
+        <NumberStepper label={slots.rotationStarters} value={d.rotationStarters} {...SETTINGS_LIMITS.rotationStarters} error={vm.errors.rotationStarters} onChange={(v) => vm.setCount('rotationStarters', v)} hint={m.rotationHint} />
+        <NumberStepper label={slots.substitute} value={d.substitutes} {...SETTINGS_LIMITS.substitutes} error={vm.errors.substitutes} onChange={(v) => vm.setCount('substitutes', v)} />
         <div className="notice notice--info">
-          Places per event: <strong>{Number.isFinite(vm.cap) ? vm.cap : '–'}</strong> (starters + substitutes). There is no limit on registrations: if more eligible players register than there are places, the selection picks who gets one and the rest are not selected.
+          {m.placesNoticeBefore} <strong>{Number.isFinite(vm.cap) ? vm.cap : '–'}</strong> {m.placesNoticeAfter}
         </div>
       </div>
 
       <div className="card settings-card">
-        <h2 className="card__title">Penalties</h2>
+        <h2 className="card__title">{m.penalties}</h2>
         <NumberStepper
-          label="Suspension length (weeks)"
+          label={m.suspensionLength}
           value={d.suspensionEvents}
           {...SETTINGS_LIMITS.suspensionEvents}
           error={vm.errors.suspensionEvents}
           onChange={(v) => vm.setCount('suspensionEvents', v)}
-          hint="A starter who does not show up and did not notify is excluded from Team A and Team B for this many weeks. 0 = no suspensions."
+          hint={m.suspensionHint}
         />
       </div>
 
       <div className="card settings-card">
-        <h2 className="card__title">Core score weights</h2>
+        <h2 className="card__title">{m.weights}</h2>
         <label className="field">
-          <span className="field__label">
-            Power {vm.powerPercent}% · Activity {100 - vm.powerPercent}%
-          </span>
+          <span className="field__label">{m.weightsLabel(vm.powerPercent, 100 - vm.powerPercent)}</span>
           <input
             className="range"
             type="range"
@@ -60,57 +61,54 @@ export function SettingsScreen() {
             step={5}
             value={vm.powerPercent}
             onChange={(e) => vm.setPowerPercent(Number(e.target.value))}
-            aria-label="Power weight percent"
+            aria-label={m.weightAria}
           />
-          <span className="field__hint">Power is measured relative to the strongest applicant of the week; activity is the R4 rating 1–5.</span>
+          <span className="field__hint">{m.weightsHint}</span>
           {vm.errors.weights && <span className="field__error">{vm.errors.weights}</span>}
         </label>
         <NumberStepper
-          label="Tie margin (score points × 100)"
+          label={m.tieMargin}
           value={Math.round(d.scoreEpsilon * 100)}
           min={SETTINGS_LIMITS.scoreEpsilon.min * 100}
           max={SETTINGS_LIMITS.scoreEpsilon.max * 100}
           error={vm.errors.scoreEpsilon}
           onChange={(v) => vm.setScoreEpsilon(v / 100)}
-          hint="When two core scores are this close, the more active player ranks higher. Default 2 (= 0.02)."
+          hint={m.tieHint}
         />
       </div>
 
       <div className="card settings-card">
-        <h2 className="card__title">Player join link</h2>
-        <p className="muted small">
-          Players open this link (no login) to register for Team A and/or Team B and to report their power. Anyone with the link can use it: share it
-          only in the alliance chat and change the code if it leaks.
-        </p>
+        <h2 className="card__title">{m.joinLink}</h2>
+        <p className="muted small">{m.joinHint}</p>
         {vm.joinLink ? (
           <>
             <div className="field">
-              <span className="field__label">Join code</span>
+              <span className="field__label">{m.joinCode}</span>
               <code className="join-code">{vm.joinCode}</code>
             </div>
             <div className="action-list">
               <button type="button" className="button button--block button--primary" onClick={() => void vm.copyJoinLink()}>
-                Copy join link
+                {m.copyJoinLink}
               </button>
               <button type="button" className="button button--block" disabled={vm.dirty} onClick={() => setConfirmCode(true)}>
-                New code (old link stops working)
+                {m.newCode}
               </button>
               <button type="button" className="button button--block button--ghost" disabled={vm.dirty} onClick={() => void vm.disableJoinPage()}>
-                Disable the join page
+                {m.disableJoin}
               </button>
             </div>
           </>
         ) : (
           <div className="action-list">
-            <p className="small">The join page is disabled (no code yet).</p>
+            <p className="small">{m.joinDisabled}</p>
             <button type="button" className="button button--block button--primary" disabled={vm.dirty} onClick={() => void vm.regenerateJoinCode()}>
-              Create a join code
+              {m.createCode}
             </button>
           </div>
         )}
-        {vm.dirty && <p className="muted small">Save or undo your rule changes before changing the code.</p>}
+        {vm.dirty && <p className="muted small">{m.saveFirst}</p>}
         <label className="field">
-          <span className="field__label">Accepted power drop: −{d.powerDropTolerancePct}%</span>
+          <span className="field__label">{m.powerDrop(d.powerDropTolerancePct)}</span>
           <input
             className="range"
             type="range"
@@ -119,12 +117,12 @@ export function SettingsScreen() {
             step={1}
             value={d.powerDropTolerancePct}
             onChange={(e) => vm.setTolerance('powerDropTolerancePct', Number(e.target.value))}
-            aria-label="Accepted power drop percent"
+            aria-label={m.powerDropAria}
           />
           {vm.errors.powerDropTolerancePct && <span className="field__error">{vm.errors.powerDropTolerancePct}</span>}
         </label>
         <label className="field">
-          <span className="field__label">Accepted power rise: +{d.powerRiseTolerancePct}%</span>
+          <span className="field__label">{m.powerRise(d.powerRiseTolerancePct)}</span>
           <input
             className="range"
             type="range"
@@ -133,54 +131,48 @@ export function SettingsScreen() {
             step={5}
             value={d.powerRiseTolerancePct}
             onChange={(e) => vm.setTolerance('powerRiseTolerancePct', Number(e.target.value))}
-            aria-label="Accepted power rise percent"
+            aria-label={m.powerRiseAria}
           />
-          <span className="field__hint">
-            A power entered on the join page within this range of the roster value updates the roster immediately. Outside it, the roster is kept and
-            the change waits in Requests for a leader.
-          </span>
+          <span className="field__hint">{m.toleranceHint}</span>
           {vm.errors.powerRiseTolerancePct && <span className="field__error">{vm.errors.powerRiseTolerancePct}</span>}
         </label>
       </div>
 
       <div className="sticky-actions sticky-actions--row">
         <button type="button" className="button" onClick={vm.restoreDefaults}>
-          Defaults
+          {m.defaults}
         </button>
         <button type="button" className="button" disabled={!vm.dirty} onClick={vm.discardChanges}>
-          Undo
+          {m.undo}
         </button>
         <button type="button" className="button button--primary" disabled={!vm.dirty || hasErrors} onClick={() => void vm.save()}>
-          Save
+          {t().common.save}
         </button>
       </div>
 
       <div className="card settings-card">
-        <h2 className="card__title">Backup &amp; data</h2>
-        <p className="muted small">
-          Data is shared by all R4s and stored online ({vm.counts.members} members, {vm.counts.events} events). Export a backup
-          regularly as a safety copy.
-        </p>
+        <h2 className="card__title">{m.backup}</h2>
+        <p className="muted small">{m.backupHint(vm.counts.members, vm.counts.events)}</p>
         <div className="action-list">
           <button type="button" className="button button--block" onClick={vm.exportBackup}>
-            Export backup (JSON)
+            {m.exportBackup}
           </button>
           {isAdmin && (
             <FileButton accept="application/json,.json" onFile={(f) => void vm.chooseBackupFile(f)} className="button button--block">
-              Restore backup…
+              {m.restoreBackup}
             </FileButton>
           )}
           <button type="button" className="button button--block" onClick={vm.exportRoster} disabled={vm.counts.members === 0}>
-            Export roster (CSV)
+            {m.exportRoster}
           </button>
           {isAdmin && import.meta.env.DEV && (
             <button type="button" className="button button--block button--ghost" onClick={() => void vm.loadDemoRoster()}>
-              Load demo roster
+              {t().roster.loadDemo}
             </button>
           )}
           {isAdmin && (
             <button type="button" className="button button--block button--danger-ghost" onClick={() => setConfirmReset(true)}>
-              Reset all data…
+              {m.resetAll}
             </button>
           )}
         </div>
@@ -192,15 +184,18 @@ export function SettingsScreen() {
 
       {vm.pendingRestore && (
         <ConfirmDialog
-          title="Restore this backup?"
+          title={m.restoreTitle}
           message={
             <p>
-              <strong>{vm.pendingRestore.fileName}</strong> from {formatTimestamp(vm.pendingRestore.backup.exportedAt)} contains{' '}
-              {vm.pendingRestore.backup.members.length} members and {vm.pendingRestore.backup.events.length} events. Everything currently stored
-              online for the whole alliance will be replaced.
+              <strong>{vm.pendingRestore.fileName}</strong>
+              {m.restoreText(
+                formatTimestamp(vm.pendingRestore.backup.exportedAt),
+                vm.pendingRestore.backup.members.length,
+                vm.pendingRestore.backup.events.length,
+              )}
             </p>
           }
-          confirmLabel="Replace my data"
+          confirmLabel={m.replaceData}
           danger
           onCancel={vm.cancelRestore}
           onConfirm={vm.confirmRestore}
@@ -208,9 +203,9 @@ export function SettingsScreen() {
       )}
       {confirmCode && (
         <ConfirmDialog
-          title="Create a new join code?"
-          message={<p>The current link stops working immediately. Share the new link in the alliance chat afterwards.</p>}
-          confirmLabel="New code"
+          title={m.newCodeTitle}
+          message={<p>{m.newCodeText}</p>}
+          confirmLabel={m.newCodeConfirm}
           onCancel={() => setConfirmCode(false)}
           onConfirm={async () => {
             await vm.regenerateJoinCode();
@@ -220,11 +215,11 @@ export function SettingsScreen() {
       )}
       {confirmReset && (
         <ConfirmDialog
-          title="Delete all data?"
-          message={<p>Roster, history, suspensions and settings will be deleted for the whole alliance. Export a backup first if unsure.</p>}
-          confirmLabel="Delete everything"
+          title={m.resetTitle}
+          message={<p>{m.resetText}</p>}
+          confirmLabel={m.resetConfirm}
           danger
-          requireText="RESET"
+          requireText={m.resetWord}
           onCancel={() => setConfirmReset(false)}
           onConfirm={async () => {
             await vm.resetAllData();

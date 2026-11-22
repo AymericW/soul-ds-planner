@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { ACTIVITY_MAX, ACTIVITY_MIN } from '@/constants/rules';
 import { parsePower } from '@/helpers/format';
 import { cleanDisplayName, normaliseHeader } from '@/helpers/normalise';
@@ -87,7 +88,7 @@ export function parseRosterTable(table: ReadonlyArray<ReadonlyArray<unknown>>): 
     const get = (field: Field) => (columns[field] === undefined ? '' : cellText(cells[columns[field]!]));
     const name = cleanDisplayName(get('name'));
     if (!name) {
-      if (cells.some((c) => cellText(c) !== '')) issues.push({ rowNumber, message: 'Missing name - row skipped.' });
+      if (cells.some((c) => cellText(c) !== '')) issues.push({ rowNumber, message: t().services.parseMissingName });
       continue;
     }
     const row: RosterImportRow = { rowNumber, name };
@@ -95,26 +96,26 @@ export function parseRosterTable(table: ReadonlyArray<ReadonlyArray<unknown>>): 
     const powerRaw = get('power');
     if (powerRaw) {
       const power = parsePower(powerRaw);
-      if (power === undefined) issues.push({ rowNumber, message: `"${name}": power "${powerRaw}" not understood - kept unchanged.` });
+      if (power === undefined) issues.push({ rowNumber, message: t().services.parsePower(name, String(powerRaw)) });
       else row.power = power;
     }
     const activityRaw = get('activity');
     if (activityRaw) {
       const activity = Number(activityRaw.replace(',', '.'));
       if (!Number.isFinite(activity) || activity < ACTIVITY_MIN || activity > ACTIVITY_MAX) {
-        issues.push({ rowNumber, message: `"${name}": activity "${activityRaw}" must be ${ACTIVITY_MIN}-${ACTIVITY_MAX} - kept unchanged.` });
+        issues.push({ rowNumber, message: t().services.parseActivity(name, String(activityRaw), ACTIVITY_MIN, ACTIVITY_MAX) });
       } else row.activity = Math.round(activity);
     }
     const rankRaw = get('rank');
     if (rankRaw) {
       const rank = parseRank(rankRaw);
       if (rank) row.rank = rank;
-      else issues.push({ rowNumber, message: `"${name}": rank "${rankRaw}" ignored (use R1-R5).` });
+      else issues.push({ rowNumber, message: t().services.parseRank(name, String(rankRaw)) });
     }
     const activeRaw = get('active');
     if (activeRaw) {
       const active = parseActiveFlag(activeRaw);
-      if (active === undefined) issues.push({ rowNumber, message: `"${name}": active "${activeRaw}" ignored (use yes/no).` });
+      if (active === undefined) issues.push({ rowNumber, message: t().services.parseActive(name, String(activeRaw)) });
       else row.active = active;
     }
     rows.push(row);

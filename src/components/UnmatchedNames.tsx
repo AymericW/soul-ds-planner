@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useMemo, useState } from 'react';
 import { similarity } from '@/helpers/fuzzy';
 import { normaliseName } from '@/helpers/normalise';
@@ -15,8 +16,8 @@ interface UnmatchedNamesProps {
 
 /** OCR lines that matched nobody: tap to say who it is (remembered as an alias). */
 export function UnmatchedNames({
-  title = 'Not recognised',
-  hint = 'Tap a name to tell the app who it is – it will remember that spelling next time. Ignore lines that are not players.',
+  title = t().week.notRecognised,
+  hint = t().week.notRecognisedHint,
   unmatched,
   members,
   onAssign,
@@ -48,15 +49,15 @@ export function UnmatchedNames({
             <button type="button" className="chip__main" onClick={() => { setSearch(''); setPicking(u.guess); }} title={u.line}>
               {u.guess}
             </button>
-            <button type="button" className="chip__remove" aria-label={`Ignore ${u.guess}`} onClick={() => onDismiss(u.guess)}>
+            <button type="button" className="chip__remove" aria-label={t().week.ignore(u.guess)} onClick={() => onDismiss(u.guess)}>
               ✕
             </button>
           </span>
         ))}
       </div>
       {picking && (
-        <Modal title={`Who is “${picking}”?`} onClose={() => setPicking(null)}>
-          <SearchInput value={search} onChange={setSearch} placeholder="Search the roster…" />
+        <Modal title={t().week.whoIs(picking)} onClose={() => setPicking(null)}>
+          <SearchInput value={search} onChange={setSearch} placeholder={t().week.searchRoster} />
           <ul className="pick-list">
             {options.map((m) => (
               <li key={m.id}>

@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useState } from 'react';
 import { FileButton } from './FileButton';
 
@@ -30,6 +31,7 @@ export function ScreenshotUploader({
   onClear,
 }: ScreenshotUploaderProps) {
   const [expanded, setExpanded] = useState(false);
+  const m = t().week;
   return (
     <div className="uploader card">
       <div className="uploader__head">
@@ -38,16 +40,16 @@ export function ScreenshotUploader({
       </div>
       <div className="uploader__actions">
         <FileButton accept="image/*" onFile={onFile} className="button button--primary" disabled={disabled || status === 'working'}>
-          {imageUrl ? 'Choose another screenshot' : 'Choose screenshot'}
+          {imageUrl ? m.chooseAnother : m.choose}
         </FileButton>
         {onTrySample && !imageUrl && (
           <button type="button" className="button button--ghost" onClick={onTrySample} disabled={disabled}>
-            Try the sample
+            {m.trySample}
           </button>
         )}
         {imageUrl && status !== 'working' && (
           <button type="button" className="button button--ghost" onClick={onClear}>
-            Remove
+            {m.remove}
           </button>
         )}
       </div>
@@ -67,10 +69,10 @@ export function ScreenshotUploader({
           type="button"
           className={`uploader__preview${expanded ? ' is-expanded' : ''}`}
           onClick={() => setExpanded((v) => !v)}
-          aria-label={expanded ? 'Collapse screenshot' : 'Expand screenshot'}
+          aria-label={expanded ? m.collapse : m.expand}
         >
-          <img src={imageUrl} alt="Imported screenshot" />
-          <span className="uploader__toggle">{expanded ? 'Tap to collapse' : 'Tap to expand'}</span>
+          <img src={imageUrl} alt={m.imported} />
+          <span className="uploader__toggle">{expanded ? m.tapCollapse : m.tapExpand}</span>
         </button>
       )}
     </div>
