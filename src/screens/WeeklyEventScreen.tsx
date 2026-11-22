@@ -3,7 +3,6 @@ import { AttendanceList } from '@/components/AttendanceList';
 import { BuildingActionSheet } from '@/components/BuildingActionSheet';
 import { BuildingBoard } from '@/components/BuildingBoard';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { EarlyRunSheet } from '@/components/EarlyRunSheet';
 import { EmptyState } from '@/components/EmptyState';
 import { CameraIcon, ClockIcon, CopyIcon, DownloadIcon, LinkIcon, PlusIcon, ShareIcon } from '@/components/Icons';
 import { MemberChecklist } from '@/components/MemberChecklist';
@@ -303,7 +302,7 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
         </details>
         <div className="step-extras__actions">
           {vm.canRunBoth && (
-            <button type="button" className="button button--ghost button--small" onClick={() => setConfirmRun(true)}>
+            <button type="button" className="button button--ghost button--small" disabled={early} onClick={() => setConfirmRun(true)}>
               Run {vm.team} only
             </button>
           )}
@@ -332,7 +331,7 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
               </span>
             )}
           </div>
-          <button type="button" className="button button--primary" disabled={vm.registeredCount === 0}
+          <button type="button" className="button button--primary" disabled={vm.registeredCount === 0 || early}
             onClick={() => (vm.defaultScope === 'both' ? setConfirmBoth(true) : setConfirmRun(true))}
           >
             {rerun ? 'Re-run selection' : 'Run selection'}
@@ -381,17 +380,7 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
           />
         </Modal>
       )}
-      {confirmRun &&
-        (!rerun && early ? (
-          <EarlyRunSheet
-            teams={vm.team}
-            closesIn={vm.registrationClosesIn}
-            closeLabel={vm.registrationCloseLabel}
-            confirmLabel="Run selection anyway"
-            onCancel={() => setConfirmRun(false)}
-            onConfirm={() => runSelection('this')}
-          />
-        ) : (
+      {confirmRun && !early && (
           <ConfirmDialog
             title={rerun ? `Re-run the selection for ${vm.team}?` : `Run the selection for ${vm.team}?`}
             message={
@@ -408,18 +397,8 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
             onCancel={() => setConfirmRun(false)}
             onConfirm={() => runSelection('this')}
           />
-        ))}
-      {confirmBoth &&
-        (early ? (
-          <EarlyRunSheet
-            teams="Team A and Team B"
-            closesIn={vm.registrationClosesIn}
-            closeLabel={vm.registrationCloseLabel}
-            confirmLabel="Run both anyway"
-            onCancel={() => setConfirmBoth(false)}
-            onConfirm={() => runSelection('both')}
-          />
-        ) : (
+        )}
+      {confirmBoth && !early && (
           <ConfirmDialog
             title="Plan Team A and Team B together?"
             message="Both lineups are recomputed from their registrations so that nobody is in both (the event with fewer players gets first pick). Manual moves and swaps in both events are lost."
@@ -427,7 +406,7 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
             onCancel={() => setConfirmBoth(false)}
             onConfirm={() => runSelection('both')}
           />
-        ))}
+        )}
       {adding && (
         <Modal title="Add new member" onClose={() => setAdding(false)}>
           <MemberForm
@@ -490,7 +469,7 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
           <button type="button" className="button button--small" onClick={() => void vm.keepPlanWithLateChanges()}>
             Keep plan, add late ones as subs
           </button>
-          <button type="button" className="button button--small" onClick={() => setConfirmRerun(true)}>
+          <button type="button" className="button button--small" disabled={vm.registrationStillOpen} onClick={() => setConfirmRerun(true)}>
             Re-run selection
           </button>
         </div>
@@ -510,6 +489,7 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
           <button
             type="button"
             className="button"
+            disabled={vm.registrationStillOpen}
             onClick={() => (vm.weekHasOverrides ? setConfirmRerun(true) : void vm.runWeeklySelection(vm.defaultScope))}
           >
             {vm.defaultScope === 'both' ? 'Re-run A + B' : 'Re-run'}
@@ -555,12 +535,10 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
 }
 
 function ShareStep({ vm }: { vm: WeeklyEventViewModel }) {
-  const [confirmEarly, setConfirmEarly] = useState(false);
   const [confirmResetBuildings, setConfirmResetBuildings] = useState(false);
   const event = vm.event;
   const locked = event?.status === 'locked';
   const lineup = vm.board.core.length + vm.board.rotation.length + vm.board.substitute.length;
-  const eventDay = event ? formatEventDate(event.date).split(' ')[0] : '';
   return (
     <div className="step">
       <div className="section-head">
@@ -588,13 +566,6 @@ function ShareStep({ vm }: { vm: WeeklyEventViewModel }) {
           }}
         />
       )}
-      {!locked && !vm.eventOver && (
-        <div className="step-extras__actions">
-          <button type="button" className="button button--ghost button--small" onClick={() => setConfirmEarly(true)}>
-            Event already played? Open attendance anyway
-          </button>
-        </div>
-      )}
       <div className="action-bar action-bar--row">
         <button type="button" className="button" onClick={() => void vm.copyPlan()}>
           <CopyIcon size={18} /> Copy plan
@@ -605,22 +576,10 @@ function ShareStep({ vm }: { vm: WeeklyEventViewModel }) {
           </button>
         ) : (
           <button type="button" className="button button--primary" disabled={!vm.eventOver} onClick={() => void vm.startAttendance()}>
-            {vm.eventOver ? 'Record attendance' : `Attendance ${eventDay}`}
+            {vm.eventOver ? 'Record attendance' : `Attendance from ${vm.eventEndShort}`}
           </button>
         )}
       </div>
-      {confirmEarly && (
-        <ConfirmDialog
-          title="Open attendance early?"
-          message="The event date has not arrived yet. This freezes the lineup until you go back to planning."
-          confirmLabel="Open attendance"
-          onCancel={() => setConfirmEarly(false)}
-          onConfirm={async () => {
-            await vm.startAttendance();
-            setConfirmEarly(false);
-          }}
-        />
-      )}
     </div>
   );
 }

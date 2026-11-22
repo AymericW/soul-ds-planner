@@ -56,10 +56,10 @@ export function dateTimeInTimeZone(now: Date, timeZone: string): string {
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
 }
 
-/** The instant at which the wall clock in `timeZone` shows `hour`:00 on `isoDate`. */
-export function zonedTimeToUtc(isoDate: string, hour: number, timeZone: string): Date {
+/** The instant at which the wall clock in `timeZone` shows `hour`:`minute` on `isoDate`. */
+export function zonedTimeToUtc(isoDate: string, hour: number, timeZone: string, minute = 0): Date {
   const [y, m, d] = isoDate.split('-').map(Number);
-  const guess = Date.UTC(y!, m! - 1, d!, hour);
+  const guess = Date.UTC(y!, m! - 1, d!, hour, minute);
   const wall = dateTimeInTimeZone(new Date(guess), timeZone);
   const [wy, wm, wd] = wall.slice(0, 10).split('-').map(Number);
   const [wh, wmin] = wall.slice(11).split(':').map(Number);
