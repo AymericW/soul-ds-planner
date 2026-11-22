@@ -38,10 +38,9 @@ function input(members: Member[], weekEvents: WeekEvent[], targets: EventSlot[] 
   return { members, events: [...events, ...weekEvents], weekEvents, targets, suspensions: [], settings };
 }
 
-/** The week-level invariants that must always hold. */
+/** The week-level invariant that must always hold: nobody is listed (starter or substitute) in both events. */
 function expectNoDoubleBooking(a: SelectionResult | undefined, b: SelectionResult | undefined) {
-  for (const id of startersOf(a)) expect(listedOf(b)).not.toContain(id);
-  for (const id of startersOf(b)) expect(listedOf(a)).not.toContain(id);
+  for (const id of listedOf(a)) expect(listedOf(b)).not.toContain(id);
 }
 
 describe('week selection: one player, one game per week', () => {
@@ -92,19 +91,34 @@ describe('week selection: one player, one game per week', () => {
     expectNoDoubleBooking(results.A, results.B);
   });
 
-  it('allows a substitute-only player to be a substitute in both events', () => {
+  it('never makes a substitute-only player a substitute in both events', () => {
     const members = roster(5);
     const { results } = selectWeek(input(members, [event('A', ['p1', 'p2', 'p3', 'p5'], ['p5']), event('B', ['p1', 'p4', 'p5'], ['p5'])]));
-    expect(slots(results.A).substitute).toContain('p5');
-    expect(slots(results.B).substitute).toContain('p5');
+    const subIn = [slots(results.A).substitute.includes('p5'), slots(results.B).substitute.includes('p5')];
+    expect(subIn.filter(Boolean)).toHaveLength(1);
     expectNoDoubleBooking(results.A, results.B);
+  });
+
+  it('never makes a "play" player who missed a starter place a substitute in both events', () => {
+    const members = roster(10);
+    // Both events are over-subscribed: p4..p6 miss a starter place in both and would be subs twice.
+    const all = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10'];
+    const { results } = selectWeek(input(members, [event('A', all), event('B', all)]));
+    expectNoDoubleBooking(results.A, results.B);
+    expect(startersOf(results.A)).toHaveLength(3);
+    expect(startersOf(results.B)).toHaveLength(3);
+    expect(slots(results.A).substitute).toHaveLength(2);
+    expect(slots(results.B).substitute).toHaveLength(2);
+    const b = results.B!.assignments.find((a) => slots(results.A).substitute.includes(a.memberId))!;
+    expect(b.slot).toBe('notSelected');
+    expect(b.reason).toBe('Substitute in Team A this week');
   });
 });
 
 describe('week selection: re-running one event respects the other', () => {
   const members = roster(6);
 
-  it('excludes the starters of an already planned other event and keeps its substitutes as substitutes only', () => {
+  it('excludes the starters and substitutes of an already planned other event', () => {
     const planned = applySelectionToEvent(
       event('B', ['p1', 'p2']),
       [
@@ -116,11 +130,9 @@ describe('week selection: re-running one event respects the other', () => {
     );
     const { results } = selectWeek(input(members, [event('A', ['p1', 'p2', 'p3', 'p4']), planned], ['A']));
     expect(results.B).toBeUndefined();
-    expect(slots(results.A).notSelected).toEqual(['p1']);
+    expect(slots(results.A).notSelected).toEqual(['p1', 'p2']);
     expect(results.A!.assignments.find((a) => a.memberId === 'p1')!.reason).toBe('Starter in Team B this week');
-    expect(startersOf(results.A)).not.toContain('p2');
-    expect(slots(results.A).substitute).toEqual(['p2']);
-    expect(results.A!.assignments.find((a) => a.memberId === 'p2')!.reason).toContain('Substitute in Team B this week');
+    expect(results.A!.assignments.find((a) => a.memberId === 'p2')!.reason).toBe('Substitute in Team B this week');
   });
 
   it('excludes a player who already played in the finalised other event, even as a substitute', () => {
@@ -164,10 +176,11 @@ describe('manual changes across Team A / Team B', () => {
     expect(placementConflict('x', 'notSelected', [b])).toBeNull();
   });
 
-  it('lets a substitute of the other event be a substitute here but not a starter', () => {
+  it('refuses any place here to a substitute of the other event', () => {
     const b = planned('B', [['y', 'substitute']]);
-    expect(placementConflict('y', 'substitute', [b])).toBeNull();
+    expect(placementConflict('y', 'substitute', [b])).toContain('only be a substitute for one event');
     expect(placementConflict('y', 'rotation', [b])).toContain('Substitute in Team B this week');
+    expect(placementConflict('y', 'notSelected', [b])).toBeNull();
     expect(placementConflict('free', 'core', [b])).toBeNull();
   });
 
@@ -178,4 +191,68 @@ describe('manual changes across Team A / Team B', () => {
     expect(attendanceConflict('z', [b])).toContain('Already played in Team B this week');
     expect(placementConflict('z', 'substitute', [b])).toContain('only play one event per week');
   });
+});
+
+describe('week selection: the "Run A + B" and "Run one team" buttons never share a player', () => {
+  /** Same logic as runWeeklySelection in useWeeklyEventViewModel: compute, then save only the saved scope. */
+  function press(week: Record<EventSlot, WeekEvent>, members: Member[], slot: EventSlot, scope: 'this' | 'both'): Record<EventSlot, WeekEvent> {
+    const other: EventSlot = slot === 'A' ? 'B' : 'A';
+    const editable = (e: WeekEvent) => e.status === 'registration' || e.status === 'planned';
+    const together = (scope === 'both' ? editable(week[other]) : week[other].status === 'registration') ? [other] : [];
+    const weekEvents = [week[slot], week[other]];
+    const { results } = selectWeek({ members, events: weekEvents, weekEvents, targets: [slot, ...together], suspensions: [], settings });
+    const next = { ...week };
+    for (const s of scope === 'both' ? [slot, ...together] : [slot]) next[s] = applySelectionToEvent(week[s], results[s]!.assignments, settings, T);
+    return next;
+  }
+
+  const listedIn = (e: WeekEvent) => e.assignments.filter((a) => a.slot !== 'notSelected').map((a) => a.memberId);
+  const expectDisjoint = (week: Record<EventSlot, WeekEvent>) => {
+    const b = new Set(listedIn(week.B));
+    expect(listedIn(week.A).filter((id) => b.has(id))).toEqual([]);
+  };
+
+  // Deterministic pseudo-random sign-up mixes: play / sub only / not registered, per team.
+  function weeks(): Array<{ members: Member[]; week: Record<EventSlot, WeekEvent> }> {
+    let seed = 7;
+    const rand = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
+    return Array.from({ length: 40 }, () => {
+      const members = roster(4 + Math.floor(rand() * 9));
+      const pick = () => {
+        const ids: string[] = [];
+        const subs: string[] = [];
+        for (const m of members) {
+          const r = rand();
+          if (r < 0.55) ids.push(m.id);
+          else if (r < 0.8) (ids.push(m.id), subs.push(m.id));
+        }
+        return { ids, subs };
+      };
+      const a = pick();
+      const b = pick();
+      return { members, week: { A: event('A', a.ids, a.subs), B: event('B', b.ids, b.subs) } };
+    });
+  }
+
+  const flows: Array<[string, Array<[EventSlot, 'this' | 'both']>]> = [
+    ['Run A + B', [['A', 'both']]],
+    ['Run A + B from Team B', [['B', 'both']]],
+    ['Run Team A only, then Team B only', [['A', 'this'], ['B', 'this']]],
+    ['Run Team B only, then Team A only', [['B', 'this'], ['A', 'this']]],
+    ['Run A + B, then re-run Team A only', [['A', 'both'], ['A', 'this']]],
+    ['Run A + B, then re-run Team B only', [['A', 'both'], ['B', 'this']]],
+    ['Run Team A only, then Run A + B', [['A', 'this'], ['A', 'both']]],
+  ];
+
+  for (const [name, steps] of flows) {
+    it(name, () => {
+      for (const { members, week: start } of weeks()) {
+        let week = start;
+        for (const [slot, scope] of steps) {
+          week = press(week, members, slot, scope);
+          expectDisjoint(week);
+        }
+      }
+    });
+  }
 });

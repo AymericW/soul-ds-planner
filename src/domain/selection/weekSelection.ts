@@ -30,7 +30,7 @@ export interface WeekSelectionResult {
 
 /**
  * Scarcity of an event = eligible starter applicants / starter places. Lower = more in need of players.
- * Players blocked or limited to substitute by a fixed event do not count.
+ * Players blocked by a fixed event do not count.
  */
 export function starterScarcity(
   event: WeekEvent,
@@ -53,12 +53,13 @@ export function starterScarcity(
 
 const listed = (r: SelectionResult, id: string) => r.assignments.some((a) => a.memberId === id && a.slot !== 'notSelected');
 const starters = (r: SelectionResult) => r.assignments.filter((a) => isStarterSlot(a.slot)).map((a) => a.memberId);
+const substitutes = (r: SelectionResult) => r.assignments.filter((a) => a.slot === 'substitute').map((a) => a.memberId);
 
 /**
  * Week-level selection for Team A and Team B (pure and deterministic).
  *
- * 1. Fixed events (not in `targets`) are respected: their starters and players who already
- *    entered are excluded from the targets; their listed substitutes may only be substitutes.
+ * 1. Fixed events (not in `targets`) are respected: everyone listed there (starters and
+ *    substitutes) and players who already entered are excluded from the targets.
  * 2. With two targets, the SCARCER event (fewest eligible starter applicants per starter place;
  *    tie -> Team A) is resolved first and keeps its starters. The other event is then selected
  *    without those starters.
@@ -66,9 +67,10 @@ const starters = (r: SelectionResult) => r.assignments.filter((a) => isStarterSl
  *    substitute in the first is removed from the first event's substitutes (where they help fill
  *    a board), and the first event is recomputed. This repeats until stable (the excluded set only
  *    grows, so it always ends).
+ * 4. A player who is still a substitute in the first event is then removed from the second event
+ *    (the first event keeps its substitutes) and the second event is recomputed.
  *
- * Invariants of the result: nobody is a starter in both events, and a starter of one event is
- * never listed (starter or substitute) in the other. Substitutes may be listed in both.
+ * Invariant of the result: nobody is listed (starter or substitute) in both events.
  */
 export function selectWeek(input: WeekSelectionInput): WeekSelectionResult {
   const { members, suspensions, settings } = input;
@@ -78,15 +80,12 @@ export function selectWeek(input: WeekSelectionInput): WeekSelectionResult {
   const anyEvent = input.weekEvents[0];
   const weeks = anyEvent ? weeksBefore(finalisedWeeks(input.events), weekStart(anyEvent.date)) : [];
 
-  // Constraints coming from the fixed event(s).
+  // Constraints coming from the fixed event(s): anyone listed there cannot be listed here.
   const fixedBlocked = new Map<string, string>();
-  const fixedSubOnly = new Map<string, string>();
   for (const event of input.weekEvents) {
     for (const r of event.registrations) {
       const c = commitmentIn(fixed, r.memberId);
-      if (!c) continue;
-      if (c.kind === 'substitute') fixedSubOnly.set(r.memberId, commitmentReason(c));
-      else fixedBlocked.set(r.memberId, commitmentReason(c));
+      if (c) fixedBlocked.set(r.memberId, commitmentReason(c));
     }
   }
 
@@ -99,7 +98,6 @@ export function selectWeek(input: WeekSelectionInput): WeekSelectionResult {
       suspensions,
       settings,
       blocked,
-      substituteOnly: fixedSubOnly,
     });
 
   if (targets.length <= 1) {
@@ -108,7 +106,7 @@ export function selectWeek(input: WeekSelectionInput): WeekSelectionResult {
     return { results, order: targets };
   }
 
-  const excluded = new Set([...fixedBlocked.keys(), ...fixedSubOnly.keys()]);
+  const excluded = new Set(fixedBlocked.keys());
   const order = [...targets].sort(
     (a, b) =>
       starterScarcity(bySlot.get(a)!, members, suspensions, settings, excluded) -
@@ -121,15 +119,22 @@ export function selectWeek(input: WeekSelectionInput): WeekSelectionResult {
   const firstBlocked = new Map(fixedBlocked);
   let resultFirst = run(first, firstBlocked);
   let resultSecond: SelectionResult;
+  let secondBlocked: Map<string, string>;
   // Each extra round adds at least one member to firstBlocked, so this ends.
   for (let round = 0; ; round++) {
-    const secondBlocked = new Map(fixedBlocked);
+    secondBlocked = new Map(fixedBlocked);
     for (const id of starters(resultFirst)) secondBlocked.set(id, `Starter in ${firstTeam} this week`);
     resultSecond = run(second, secondBlocked);
     const moved = starters(resultSecond).filter((id) => listed(resultFirst, id) && !firstBlocked.has(id));
     if (moved.length === 0 || round > members.length) break;
     for (const id of moved) firstBlocked.set(id, `Starter in ${secondTeam} this week`);
     resultFirst = run(first, firstBlocked);
+  }
+  // A substitute of the first event cannot also be a substitute in the second one.
+  const doubleSubs = substitutes(resultFirst).filter((id) => listed(resultSecond, id));
+  if (doubleSubs.length > 0) {
+    for (const id of substitutes(resultFirst)) secondBlocked.set(id, `Substitute in ${firstTeam} this week`);
+    resultSecond = run(second, secondBlocked);
   }
   return { results: { [first]: resultFirst, [second]: resultSecond }, order };
 }

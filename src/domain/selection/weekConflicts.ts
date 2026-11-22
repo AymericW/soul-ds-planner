@@ -4,8 +4,7 @@ import type { WeekEvent } from '@/models/WeekEvent';
 
 /**
  * One player, one game per week. Rules between Team A and Team B of the same week:
- *  - a starter (core/rotation) of one event can be neither starter nor substitute in the other;
- *  - a substitute may be listed as substitute in both events;
+ *  - a player listed in one event (starter or substitute) cannot be listed in the other;
  *  - once a player actually entered one event, they are out of the other.
  */
 export interface WeekCommitment {
@@ -35,7 +34,7 @@ export function commitmentIn(otherEvents: readonly WeekEvent[], memberId: string
 export function commitmentReason(c: WeekCommitment): string {
   if (c.kind === 'entered') return `Already played in ${c.team} this week`;
   if (c.kind === 'starter') return `Starter in ${c.team} this week`;
-  return `Substitute in ${c.team} this week – cannot start here`;
+  return `Substitute in ${c.team} this week`;
 }
 
 /**
@@ -48,8 +47,7 @@ export function placementConflict(memberId: string, slot: Slot, otherEvents: rea
   if (!c) return null;
   if (c.kind === 'entered') return `${commitmentReason(c)}: a player can only play one event per week.`;
   if (c.kind === 'starter') return `${commitmentReason(c)}: a starter cannot also be listed in the other event.`;
-  // Listed as substitute elsewhere: a second substitute place is fine, a starter place is not.
-  return isStarterSlot(slot) ? `Substitute in ${c.team} this week: remove them there first to make them a starter here.` : null;
+  return `${commitmentReason(c)}: a player can only be a substitute for one event per week. Remove them there first.`;
 }
 
 /** Why attendance cannot be recorded for this member (entered the other event already), or null. */
