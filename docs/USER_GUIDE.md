@@ -93,7 +93,8 @@ You see four groups, each player with a short **why**:
 * **Not selected** – over the cap, inactive or suspended (with the reason).
 
 A starter of the other event is never in this lineup (*Not selected – Starter in Team B this
-week*); a substitute of the other event can only be a substitute here.
+week*), and neither is a substitute of the other event (*Not selected – Substitute in Team B
+this week*): a player is a substitute for one team at most.
 
 Tap a player to **move** them to another group or **swap** them with someone (moves that
 would put a player in both lineups are refused with an explanation). If you

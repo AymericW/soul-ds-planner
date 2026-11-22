@@ -93,8 +93,8 @@ export function registrationDrift(event: WeekEvent): { lateAdds: string[]; withd
 
 /**
  * Keeps the current plan: late registrations become the last substitutes, withdrawn players are removed.
- * A late registration who cannot be a substitute here (starter or already played in the other event
- * of the week) is added as "not selected" with the reason.
+ * A late registration who cannot be a substitute here (already listed in, or already played in, the other
+ * event of the week) is added as "not selected" with the reason.
  */
 export function syncPlanWithRegistrations(event: WeekEvent, nowIso: string, otherEventsOfWeek: readonly WeekEvent[] = []): WeekEvent {
   const { lateAdds, withdrawn } = registrationDrift(event);

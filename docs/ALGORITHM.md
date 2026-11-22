@@ -155,12 +155,12 @@ Rules between the two events of a week (`domain/selection/weekConflicts.ts`):
 | In the other event the player is… | …here they can be |
 | --- | --- |
 | a **starter** (core / rotation) | nothing (*Not selected – Starter in Team B this week*) |
-| a **substitute** (not used) | substitute only (never starter) |
+| a **substitute** (not used) | nothing (*Not selected – Substitute in Team B this week*) |
 | someone who **entered** (starter or called-in substitute) | nothing (*Already played in Team B this week*) |
 | not listed | anything |
 
-So a player may be **listed as substitute in both** events; as soon as they actually
-enter one of them, they are out of the other (attendance for them is refused there).
+So a player is **listed in at most one** event of the week, as starter or substitute.
+Once they actually enter one of them, attendance for them is refused in the other.
 
 ### Week-level selection (`selectWeek`)
 
@@ -169,20 +169,21 @@ The selection of a week takes both events' registrations, the shared history and
 
 1. **Fixed event respected.** When only one event is (re)computed and the other already
    has a plan (planned, locked or finalised), the other plan is kept and the rules above
-   apply to it. Re-running Team A therefore never steals a Team B starter.
+   apply to it. Re-running Team A therefore never steals a Team B starter or substitute.
 2. **Scarcer event first.** When both events are computed together, each gets a
    *scarcity* = eligible starter applicants ÷ starter places (substitute-only
    registrations, inactive/suspended players and players blocked by a fixed event do not
    count). The **lower** ratio is resolved first (tie → **Team A**). It keeps its starters;
-   the other event is then selected without them, and the first event's substitutes may
-   only be substitutes there.
+   the other event is then selected without them.
 3. **Contested players go where they fill a board.** If a player who is only a
    *substitute* in the first event becomes a *starter* in the second, they are removed from
    the first event and the first event is recomputed (its next substitute moves up). This
    repeats until stable; it always ends because the set of removed players only grows.
+4. **One substitute place per week.** Anyone still a substitute in the first event is then
+   removed from the second event (*Substitute in Team A this week*), which is recomputed
+   so its next candidate takes the substitute place.
 
-Result invariants (unit-tested): nobody is a starter in both events, a starter of one
-event is never listed in the other, substitutes may appear in both.
+Result invariant (unit-tested): nobody is listed (starter or substitute) in both events.
 
 **When are both events computed together?**
 
