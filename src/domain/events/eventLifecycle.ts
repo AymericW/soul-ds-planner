@@ -4,6 +4,8 @@ import type { BuildingAssignment } from '@/models/Building';
 import type { RegistrationSource } from '@/models/Registration';
 import type { Settings } from '@/models/Settings';
 import type { WeekEvent } from '@/models/WeekEvent';
+import { EVENT_SLOT_INFO, EVENT_TIME_ZONE } from '@/constants/events';
+import { zonedTimeToUtc } from '@/helpers/dates';
 import { addAssignment, removeAssignment } from '@/domain/selection/overrides';
 import { placementConflict } from '@/domain/selection/weekConflicts';
 
@@ -11,9 +13,15 @@ export function isEditable(event: WeekEvent): boolean {
   return event.status === 'registration' || event.status === 'planned';
 }
 
-/** Attendance can be recorded once the event day has arrived (ISO dates compare lexicographically). */
-export function isEventOver(event: WeekEvent, todayIso: string): boolean {
-  return todayIso >= event.date;
+/** Instant at which the event ends (Team A 21:30, Team B 12:30, Paris time). */
+export function eventEndAt(event: Pick<WeekEvent, 'date' | 'slot'>): Date {
+  const [hour, minute] = EVENT_SLOT_INFO[event.slot].endTime.split(':').map(Number);
+  return zonedTimeToUtc(event.date, hour!, EVENT_TIME_ZONE, minute!);
+}
+
+/** Attendance can only be recorded once the event has ended. */
+export function isEventOver(event: Pick<WeekEvent, 'date' | 'slot'>, now: Date): boolean {
+  return now.getTime() >= eventEndAt(event).getTime();
 }
 
 export function setRegistered(

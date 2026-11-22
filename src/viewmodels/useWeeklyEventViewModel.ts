@@ -53,7 +53,7 @@ import { buildPlanText } from '@/domain/selection/planText';
 import { registrationCap, starterCount } from '@/domain/selection/runSelection';
 import { attendanceConflict, placementConflict } from '@/domain/selection/weekConflicts';
 import { selectWeek as planWeek } from '@/domain/selection/weekSelection';
-import { formatEventDate, toIsoDate, weekStart } from '@/helpers/dates';
+import { formatEventDate, weekStart } from '@/helpers/dates';
 import { formatDuration, formatPower, pluralise } from '@/helpers/format';
 import type { NameCandidate, OcrMatchResult } from '@/helpers/nameMatching';
 import { isStarterSlot, type Slot } from '@/models/Assignment';
@@ -387,6 +387,11 @@ export function useWeeklyEventViewModel() {
   const runWeeklySelection = useCallback(
     async (scope: 'this' | 'both' = 'this') => {
       if (!event || !isEditable(event)) return;
+      // Hard rule: no selection before Wednesday 10 PM (Paris), while players can still register.
+      if (isRegistrationStillOpen(event.date, now())) {
+        notify(`The selection can only be run from ${formatEventDate(registrationCloseDate(event.date))}, 10 PM (Paris time).`, 'error');
+        return;
+      }
       const weekList = [event, ...otherEvents];
       // The other event is resolved together when it has no plan yet (so the two boards are balanced),
       // or when the leader asked for both; otherwise its current plan is respected.
@@ -419,7 +424,7 @@ export function useWeeklyEventViewModel() {
       if (scope === 'both') parts.push(`Both events planned (${order.map((s) => EVENT_SLOT_INFO[s].team).join(' first, then ')}).`);
       notify(parts.join(' '), 'success');
     },
-    [event, otherEvents, members, events, suspensions, settings, mutateEventById, nowIso, notify, cap],
+    [event, otherEvents, members, events, suspensions, settings, mutateEventById, now, nowIso, notify, cap],
   );
 
   const playerView = useCallback(
@@ -498,8 +503,10 @@ export function useWeeklyEventViewModel() {
   // ---------- step 3: lock ----------
   const planText = useMemo(() => (event ? buildPlanText(event, members) : ''), [event, members]);
 
-  /** Opens attendance: freezes the lineup. Only offered once the event day has arrived (or when forced). */
-  const eventOver = event ? isEventOver(event, toIsoDate(now())) : false;
+  /** Opens attendance: freezes the lineup. Hard rule: only once the event has ended (A 21:30, B 12:30 Paris time). */
+  const eventOver = event ? isEventOver(event, now()) : false;
+  /** "Fri 21:30" – when attendance opens. */
+  const eventEndShort = event ? `${formatEventDate(event.date).split(' ')[0]} ${EVENT_SLOT_INFO[event.slot].endTime}` : '';
   /** Running the selection before Wednesday 10 PM (Paris) cuts off players who could still register. */
   const registrationStillOpen = event ? isRegistrationStillOpen(event.date, now()) : false;
   const registrationCloseLabel = event ? `${formatEventDate(registrationCloseDate(event.date))}, 10 PM (Paris time)` : '';
@@ -508,9 +515,13 @@ export function useWeeklyEventViewModel() {
   const registrationClosesIn = event && registrationStillOpen ? formatDuration(registrationCloseAt(event.date).getTime() - now().getTime()) : '';
   const startAttendance = useCallback(async () => {
     if (!event || event.status === 'registration') return;
+    if (!isEventOver(event, now())) {
+      notify(`Attendance can only be recorded once ${EVENT_SLOT_INFO[event.slot].team} has ended (${eventEndShort}, Paris time).`, 'error');
+      return;
+    }
     await mutateEvent((e) => lockEvent(e, nowIso()));
     setStep(4);
-  }, [event, mutateEvent, nowIso]);
+  }, [event, mutateEvent, now, nowIso, notify, eventEndShort]);
 
   /** Opening the attendance step on a planned event starts attendance (locks the lineup) first. */
   const goToStep = useCallback(
@@ -524,7 +535,7 @@ export function useWeeklyEventViewModel() {
   /** Attendance changes on an event that is over but still planned lock it in the same save. */
   const forAttendance = useCallback(
     (e: WeekEvent): WeekEvent | null => {
-      if (e.status === 'planned' && isEventOver(e, toIsoDate(now()))) return lockEvent(e, nowIso());
+      if (e.status === 'planned' && isEventOver(e, now())) return lockEvent(e, nowIso());
       return e.status === 'locked' ? e : null;
     },
     [now, nowIso],
@@ -1013,6 +1024,7 @@ export function useWeeklyEventViewModel() {
     shareBuildingImage,
     otherTeamHasPlan,
     eventOver,
+    eventEndShort,
     startAttendance,
     unlockPlan,
     // step 4

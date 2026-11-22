@@ -24,9 +24,11 @@ export interface EventSlotInfo {
   joinTimeLabel: string;
   /** Start hour, Paris time (orders the two events of one day: Team B plays first). */
   startHour: number;
+  /** End of the event, Paris time ("HH:MM"): attendance can only be recorded from then on. */
+  endTime: string;
 }
 
 export const EVENT_SLOT_INFO: Readonly<Record<EventSlot, EventSlotInfo>> = Object.freeze({
-  A: { team: 'Team A', timeLabel: '9 PM (Paris time)', joinTimeLabel: '9 PM (21h) Paris time', startHour: 21 },
-  B: { team: 'Team B', timeLabel: '12 PM (Paris time)', joinTimeLabel: '12 PM (12h) Paris time', startHour: 12 },
+  A: { team: 'Team A', timeLabel: '9 PM (Paris time)', joinTimeLabel: '9 PM (21h) Paris time', startHour: 21, endTime: '21:30' },
+  B: { team: 'Team B', timeLabel: '12 PM (Paris time)', joinTimeLabel: '12 PM (12h) Paris time', startHour: 12, endTime: '12:30' },
 });

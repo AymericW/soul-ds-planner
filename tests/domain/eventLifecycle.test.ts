@@ -27,11 +27,20 @@ import { makeFinalisedEvent, makeMember, makeSettings } from '../fixtures';
 const T = '2026-02-01T10:00:00.000Z';
 
 describe('event lifecycle', () => {
-  it('opens attendance only from the event day', () => {
-    const e = createWeekEvent('2026-02-06', 'A', T);
-    expect(isEventOver(e, '2026-02-02')).toBe(false);
-    expect(isEventOver(e, '2026-02-06')).toBe(true);
-    expect(isEventOver(e, '2026-02-07')).toBe(true);
+  it('opens attendance only once the event has ended (A 21:30, B 12:30 Paris time)', () => {
+    // Winter time (UTC+1): Team A ends 20:30 UTC, Team B 11:30 UTC.
+    const a = createWeekEvent('2026-02-06', 'A', T);
+    expect(isEventOver(a, new Date('2026-02-02T12:00:00Z'))).toBe(false);
+    expect(isEventOver(a, new Date('2026-02-06T20:29:00Z'))).toBe(false);
+    expect(isEventOver(a, new Date('2026-02-06T20:30:00Z'))).toBe(true);
+    expect(isEventOver(a, new Date('2026-02-07T08:00:00Z'))).toBe(true);
+    const b = createWeekEvent('2026-02-06', 'B', T);
+    expect(isEventOver(b, new Date('2026-02-06T11:29:00Z'))).toBe(false);
+    expect(isEventOver(b, new Date('2026-02-06T11:30:00Z'))).toBe(true);
+    // Summer time (UTC+2).
+    const summer = createWeekEvent('2026-07-03', 'A', T);
+    expect(isEventOver(summer, new Date('2026-07-03T19:29:00Z'))).toBe(false);
+    expect(isEventOver(summer, new Date('2026-07-03T19:30:00Z'))).toBe(true);
   });
 
   it('finds the open weeks (oldest first) and the events of a week by slot', () => {

@@ -1999,10 +1999,6 @@ button.player-card:hover,
   min-height: 52px;
 }
 
-.modal:has(.early) {
-  border-top: 2px solid var(--color-danger);
-}
-
 .sheet-member {
   display: flex;
   align-items: center;
@@ -2042,61 +2038,6 @@ button.player-card:hover,
   margin-top: 0.8rem;
   padding-top: 0.6rem;
   border-top: 1px solid var(--color-border);
-}
-
-/* Early run warning */
-.early {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-}
-
-.early .sheet-text {
-  margin: 0;
-}
-
-.early__icon {
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--color-danger) 18%, var(--color-bg-elevated));
-  color: var(--color-danger);
-}
-
-.early__countdown {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 1rem;
-  border-radius: 16px;
-  background: var(--color-surface);
-  text-align: center;
-}
-
-.early__eyebrow {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.early__time {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  line-height: 1.2;
-  color: var(--color-warning);
-  font-variant-numeric: tabular-nums;
-}
-
-.early__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
 }
 
 /* Lineup: counters + flat grouped rows */
