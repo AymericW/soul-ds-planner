@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 interface NumberStepperProps {
   label: string;
   value: number;
@@ -16,7 +17,7 @@ export function NumberStepper({ label, value, min, max, step = 1, hint, error, o
     <div className="field">
       <span className="field__label">{label}</span>
       <div className="stepper">
-        <button type="button" className="button stepper__btn" aria-label={`Decrease ${label}`} disabled={value <= min} onClick={() => onChange(clamp(value - step))}>
+        <button type="button" className="button stepper__btn" aria-label={t().settings.decrease(label)} disabled={value <= min} onClick={() => onChange(clamp(value - step))}>
           −
         </button>
         <input
@@ -29,7 +30,7 @@ export function NumberStepper({ label, value, min, max, step = 1, hint, error, o
           value={Number.isFinite(value) ? value : ''}
           onChange={(e) => onChange(e.target.value === '' ? Number.NaN : Number(e.target.value))}
         />
-        <button type="button" className="button stepper__btn" aria-label={`Increase ${label}`} disabled={value >= max} onClick={() => onChange(clamp(value + step))}>
+        <button type="button" className="button stepper__btn" aria-label={t().settings.increase(label)} disabled={value >= max} onClick={() => onChange(clamp(value + step))}>
           +
         </button>
       </div>

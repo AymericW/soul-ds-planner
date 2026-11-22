@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import type { ReactNode } from 'react';
 import { NAV_ITEMS, ROUTES, type RouteId } from '@/constants/routes';
 
@@ -51,7 +52,7 @@ const ICONS: Partial<Record<RouteId, ReactNode>> = {
 
 export function BottomNav({ current, onNavigate, badges = {} }: BottomNavProps) {
   return (
-    <nav className="bottom-nav" aria-label="Main">
+    <nav className="bottom-nav" aria-label={t().nav.aria}>
       {NAV_ITEMS.map((item) => (
         <button
           key={item.id}
@@ -63,9 +64,9 @@ export function BottomNav({ current, onNavigate, badges = {} }: BottomNavProps) 
           <span className="bottom-nav__icon" aria-hidden="true">
             {ICONS[item.id]}
           </span>
-          <span className="bottom-nav__label">{item.label}</span>
+          <span className="bottom-nav__label">{t().nav[item.id]}</span>
           {(badges[item.id] ?? 0) > 0 && (
-            <span className="bottom-nav__badge" aria-label={`${badges[item.id]} pending`}>
+            <span className="bottom-nav__badge" aria-label={t().nav.pending(badges[item.id] ?? 0)}>
               {badges[item.id]}
             </span>
           )}

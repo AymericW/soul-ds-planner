@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -5,7 +6,7 @@ interface SearchInputProps {
   label?: string;
 }
 
-export function SearchInput({ value, onChange, placeholder = 'Search members…', label = 'Search' }: SearchInputProps) {
+export function SearchInput({ value, onChange, placeholder = t().week.searchMembers, label = t().week.search }: SearchInputProps) {
   return (
     <div className="search">
       <span className="search__icon" aria-hidden="true">
@@ -23,7 +24,7 @@ export function SearchInput({ value, onChange, placeholder = 'Search members…'
         spellCheck={false}
       />
       {value && (
-        <button type="button" className="icon-button search__clear" aria-label="Clear search" onClick={() => onChange('')}>
+        <button type="button" className="icon-button search__clear" aria-label={t().week.clearSearch} onClick={() => onChange('')}>
           ✕
         </button>
       )}

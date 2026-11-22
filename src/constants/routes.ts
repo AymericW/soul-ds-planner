@@ -16,12 +16,13 @@ export const DEFAULT_ROUTE: RouteId = ROUTES.event;
 /** Routes that render without signing in. */
 export const PUBLIC_ROUTES: readonly RouteId[] = [ROUTES.join];
 
-export const NAV_ITEMS: ReadonlyArray<{ id: RouteId; label: string; icon: string }> = [
-  { id: ROUTES.event, label: 'This week', icon: '⚔' },
-  { id: ROUTES.roster, label: 'Roster', icon: '☰' },
-  { id: ROUTES.requests, label: 'Requests', icon: '✉' },
-  { id: ROUTES.history, label: 'History', icon: '⟲' },
-  { id: ROUTES.settings, label: 'Settings', icon: '⚙' },
+/** Labels are in the i18n dictionaries: `t().nav[id]`. */
+export const NAV_ITEMS: ReadonlyArray<{ id: Exclude<RouteId, 'join'>; icon: string }> = [
+  { id: ROUTES.event, icon: '⚔' },
+  { id: ROUTES.roster, icon: '☰' },
+  { id: ROUTES.requests, icon: '✉' },
+  { id: ROUTES.history, icon: '⟲' },
+  { id: ROUTES.settings, icon: '⚙' },
 ];
 
 export function isRouteId(value: string): value is RouteId {

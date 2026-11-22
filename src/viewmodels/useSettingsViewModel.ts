@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_SETTINGS } from '@/constants/defaults';
 import { computeRosterStats } from '@/domain/history/memberStats';
@@ -60,7 +61,7 @@ export function useSettingsViewModel() {
   const copyJoinLink = useCallback(async () => {
     if (!joinLink) return;
     const ok = await copyText(joinLink);
-    notify(ok ? 'Join link copied – share it in the alliance chat.' : 'Could not copy automatically. Select the link and copy it.', ok ? 'success' : 'warning');
+    notify(ok ? t().common.joinLinkCopied : t().common.copyFailedSelectLink, ok ? 'success' : 'warning');
   }, [joinLink, notify]);
 
   /** Saves a new join code right away (the old link stops working), or disables the page with ''. */
@@ -68,7 +69,7 @@ export function useSettingsViewModel() {
     async (code: string) => {
       await repos.settings.setJoinCode(code);
       await reload();
-      notify(code ? 'New join code saved. The previous link no longer works.' : 'Join page disabled.', code ? 'success' : 'info');
+      notify(code ? t().settings.newCodeSaved : t().settings.joinPageDisabled, code ? 'success' : 'info');
     },
     [repos, reload, notify],
   );
@@ -79,7 +80,7 @@ export function useSettingsViewModel() {
     if (Object.keys(validateSettings(draft)).length) return;
     await repos.settings.save(draft);
     await reload();
-    notify('Settings saved. They apply from the next selection run.', 'success');
+    notify(t().settings.saved, 'success');
   }, [draft, repos, reload, notify]);
 
   const discardChanges = useCallback(() => setDraft(settings), [settings]);
@@ -88,7 +89,7 @@ export function useSettingsViewModel() {
   const exportBackup = useCallback(() => {
     const backup = buildBackup({ members, events, suspensions, settings }, now().toISOString());
     downloadTextFile(`soul-ds-backup-${toIsoDate(now())}.json`, JSON.stringify(backup, null, 2), 'application/json');
-    notify('Backup downloaded. Keep it somewhere safe (e.g. cloud drive).', 'success');
+    notify(t().settings.backupDownloaded, 'success');
   }, [members, events, suspensions, settings, now, notify]);
 
   const exportRoster = useCallback(() => {
@@ -102,7 +103,7 @@ export function useSettingsViewModel() {
       try {
         setPendingRestore({ fileName: file.name, backup: parseBackup(await file.text()) });
       } catch (e) {
-        notify(e instanceof InvalidBackupError ? e.message : 'Could not read this file.', 'error');
+        notify(e instanceof InvalidBackupError ? e.message : t().settings.couldNotRead, 'error');
       }
     },
     [notify],
@@ -118,7 +119,7 @@ export function useSettingsViewModel() {
     await repos.settings.save(backup.settings);
     setPendingRestore(null);
     await reload();
-    notify(`Backup restored: ${backup.members.length} members, ${backup.events.length} events.`, 'success');
+    notify(t().settings.restored(backup.members.length, backup.events.length), 'success');
   }, [pendingRestore, repos, reload, notify]);
 
   const cancelRestore = useCallback(() => setPendingRestore(null), []);
@@ -126,7 +127,7 @@ export function useSettingsViewModel() {
   const resetAllData = useCallback(async () => {
     await repos.clearAll();
     await reload();
-    notify('All data was deleted.', 'info');
+    notify(t().settings.allDeleted, 'info');
   }, [repos, reload, notify]);
 
   const loadDemoRoster = useDemoData(reload);

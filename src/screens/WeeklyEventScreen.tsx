@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useState } from 'react';
 import { AttendanceList } from '@/components/AttendanceList';
 import { BuildingActionSheet } from '@/components/BuildingActionSheet';
@@ -18,32 +19,27 @@ import { StepIndicator } from '@/components/StepIndicator';
 import { UnmatchedNames } from '@/components/UnmatchedNames';
 import { ROUTES, type RouteId } from '@/constants/routes';
 import { formatEventDate, formatTimestamp } from '@/helpers/dates';
-import { formatPower, pluralise } from '@/helpers/format';
+import { formatPower } from '@/helpers/format';
 import { useWeeklyEventViewModel, type WeeklyEventViewModel, type WizardStep } from '@/viewmodels/useWeeklyEventViewModel';
 
-const STATUS_LABEL = {
-  registration: 'Registration',
-  planned: 'Plan ready',
-  locked: 'Locked',
-  finalised: 'Finalised',
-} as const;
-
-const STEP_LABELS: Record<WizardStep, string> = { 1: 'Poll', 2: 'Lineup', 3: 'Share', 4: 'Attend' };
+const stepLabel = (step: WizardStep): string =>
+  ({ 1: t().week.stepPoll, 2: t().week.stepLineup, 3: t().week.stepShare, 4: t().week.stepAttend })[step];
 
 export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId) => void }) {
   const vm = useWeeklyEventViewModel();
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const m = t().week;
 
-  if (vm.loading) return <p className="muted">Loading…</p>;
+  if (vm.loading) return <p className="muted">{t().common.loading}</p>;
 
   if (!vm.hasMembers) {
     return (
       <section className="screen">
-        <h1 className="screen__title">This week</h1>
-        <EmptyState title="Start with your roster">
-          <p>Add or import the alliance members first – then come back to plan Desert Storm.</p>
+        <h1 className="screen__title">{m.title}</h1>
+        <EmptyState title={m.startRoster}>
+          <p>{m.startRosterHint}</p>
           <button type="button" className="button button--primary" onClick={() => onNavigate(ROUTES.roster)}>
-            Open roster
+            {m.openRoster}
           </button>
         </EmptyState>
       </section>
@@ -58,14 +54,14 @@ export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId)
     <section className="screen screen--event">
       <div className="event-head">
         <div>
-          <span className="eyebrow">Desert Storm</span>
+          <span className="eyebrow">{m.gameName}</span>
           <h1 className="screen__title">{formatEventDate(event.date)}</h1>
         </div>
-        <span className={`status-chip status-chip--${event.status}`}>{STATUS_LABEL[event.status]}</span>
+        <span className={`status-chip status-chip--${event.status}`}>{t().status[event.status]}</span>
       </div>
       {vm.weekOptions.length > 1 && (
         <label className="field">
-          <span className="field__label">Week</span>
+          <span className="field__label">{m.week}</span>
           <select className="input" value={vm.weekKey ?? ''} onChange={(e) => vm.chooseWeek(e.target.value)}>
             {vm.weekOptions.map((w) => (
               <option key={w.key} value={w.key}>
@@ -75,35 +71,35 @@ export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId)
           </select>
         </label>
       )}
-      <div className="team-switch" role="tablist" aria-label="Event">
-        {vm.eventTabs.map((t) => (
+      <div className="team-switch" role="tablist" aria-label={m.eventAria}>
+        {vm.eventTabs.map((tab) => (
           <button
-            key={t.slot}
+            key={tab.slot}
             type="button"
             role="tab"
-            aria-selected={t.slot === vm.slot}
-            className={`team-switch__item${t.slot === vm.slot ? ' is-selected' : ''}`}
-            onClick={() => (t.status ? vm.selectSlot(t.slot) : void vm.startNewWeek(event.date))}
+            aria-selected={tab.slot === vm.slot}
+            className={`team-switch__item${tab.slot === vm.slot ? ' is-selected' : ''}`}
+            onClick={() => (tab.status ? vm.selectSlot(tab.slot) : void vm.startNewWeek(event.date))}
           >
-            <span className="team-switch__team">{t.team}</span>
+            <span className="team-switch__team">{tab.team}</span>
             <span className="team-switch__meta">
-              {t.status ? `${t.shortTime} · ${t.registered}` : 'tap to create'}
-              {t.status === 'finalised' && ' · done'}
+              {tab.status ? `${tab.shortTime} · ${tab.registered}` : m.tapToCreate}
+              {tab.status === 'finalised' && m.done}
             </span>
           </button>
         ))}
       </div>
       {finalised ? (
         <div className="notice notice--success">
-          <span>{vm.team} is finalised: attendance and penalties are in the history.</span>
+          <span>{m.finalisedNotice(vm.team)}</span>
           <button type="button" className="button button--small" onClick={() => onNavigate(ROUTES.history)}>
-            View history
+            {t().common.viewHistory}
           </button>
         </div>
       ) : (
         <>
           <StepIndicator
-            steps={([1, 2, 3, 4] as WizardStep[]).map((id) => ({ id, label: STEP_LABELS[id], enabled: vm.unlockedSteps[id] }))}
+            steps={([1, 2, 3, 4] as WizardStep[]).map((id) => ({ id, label: stepLabel(id), enabled: vm.unlockedSteps[id] }))}
             current={vm.step}
             onSelect={(id) => vm.setStep(id as WizardStep)}
           />
@@ -112,15 +108,15 @@ export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId)
           {vm.step === 3 && <ShareStep vm={vm} />}
           {vm.step === 4 && <AttendanceStep vm={vm} />}
           <button type="button" className="button button--danger-ghost button--small discard" onClick={() => setConfirmDiscard(true)}>
-            Cancel / delete {vm.team} of this week
+            {m.discard(vm.team)}
           </button>
         </>
       )}
       {confirmDiscard && (
         <ConfirmDialog
-          title={`Delete ${vm.team} of this week?`}
-          message={`${vm.team} of ${formatEventDate(event.date)}, with its registrations, lineup and attendance, will be deleted. The other event, past weeks and penalties are not affected. Events of the upcoming Friday are created again automatically (empty) the next time the app or the join page opens.`}
-          confirmLabel="Delete event"
+          title={m.discardTitle(vm.team)}
+          message={m.discardText(vm.team, formatEventDate(event.date))}
+          confirmLabel={m.deleteEvent}
           danger
           onCancel={() => setConfirmDiscard(false)}
           onConfirm={async () => {
@@ -135,36 +131,40 @@ export function WeeklyEventScreen({ onNavigate }: { onNavigate: (route: RouteId)
 
 function StartWeek({ vm, onNavigate }: { vm: WeeklyEventViewModel; onNavigate: (route: RouteId) => void }) {
   const [date, setDate] = useState(vm.defaultDate);
+  const m = t().week;
   return (
     <section className="screen">
-      <h1 className="screen__title">This week</h1>
+      <h1 className="screen__title">{m.title}</h1>
       {vm.previousSummary && (
         <div className="notice notice--success">
           <div>
-            <strong>Last week finalised:</strong> {vm.previousSummary.label}. {pluralise(vm.previousSummary.played, 'player')} played (Team A + Team B).
-            {vm.previousSummary.suspendedNames.length > 0
-              ? ` Suspended: ${vm.previousSummary.suspendedNames.join(', ')}.`
-              : ' No penalties.'}
+            <strong>{m.lastWeekFinalised}</strong>
+            {m.lastWeekPlayed(vm.previousSummary.label, t().count.player(vm.previousSummary.played))}
+            {vm.previousSummary.suspendedNames.length > 0 ? m.suspendedNames(vm.previousSummary.suspendedNames.join(', ')) : m.noPenalties}
           </div>
           <button type="button" className="button button--small" onClick={() => onNavigate(ROUTES.history)}>
-            View history
+            {t().common.viewHistory}
           </button>
         </div>
       )}
       <div className="card start-card">
-        <h2 className="card__title">Start a new week</h2>
+        <h2 className="card__title">{m.startTitle}</h2>
         <p className="muted">
-          Every Friday has two events: Team A ({vm.eventTabs[0]?.timeLabel}) and Team B ({vm.eventTabs[1]?.timeLabel}). They are created
-          automatically for the upcoming Friday; use this only for another date. Each event: {vm.settings.coreStarters} core +{' '}
-          {vm.settings.rotationStarters} rotation starters, {vm.settings.substitutes} substitutes = {vm.cap} places. A player plays at most one
-          event per week. History and suspensions from previous weeks are applied automatically.
+          {m.startText(
+            vm.eventTabs[0]?.timeLabel ?? '',
+            vm.eventTabs[1]?.timeLabel ?? '',
+            vm.settings.coreStarters,
+            vm.settings.rotationStarters,
+            vm.settings.substitutes,
+            vm.cap,
+          )}
         </p>
         <label className="field">
-          <span className="field__label">Event date (Friday)</span>
+          <span className="field__label">{m.eventDate}</span>
           <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
         <button type="button" className="button button--primary button--block" disabled={!date} onClick={() => void vm.startNewWeek(date)}>
-          Create Team A and Team B
+          {m.createBoth}
         </button>
       </div>
     </section>
@@ -186,6 +186,9 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
   const early = vm.registrationStillOpen;
   const ocr = vm.pollOcr;
   const importVisible = showImport || ocr.status !== 'idle' || Boolean(ocr.imageUrl);
+  const m = t().week;
+  const warningOf = (i: { inactive: boolean; suspendedFor: number }) =>
+    i.inactive ? t().common.inactive : i.suspendedFor > 0 ? t().common.suspendedCount(i.suspendedFor) : undefined;
 
   const runSelection = async (scope: 'this' | 'both') => {
     await vm.runWeeklySelection(scope);
@@ -196,7 +199,7 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
   return (
     <div className="step">
       {!vm.editable && (
-        <div className="notice notice--info">Attendance has started, so the lineup is frozen. Go back to planning in step 4 to change registrations.</div>
+        <div className="notice notice--info">{m.frozenPoll}</div>
       )}
       {registration && (
         <div className={`join-strip${early ? '' : ' is-closed'}`}>
@@ -204,22 +207,26 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
           <span className="join-strip__text">
             {early ? (
               <>
-                Join link open · closes <strong>{vm.registrationCloseShort}</strong> (in {vm.registrationClosesIn})
+                {m.joinOpen}
+                <strong>{vm.registrationCloseShort}</strong>
+                {m.joinOpenIn(vm.registrationClosesIn)}
               </>
             ) : (
               <>
-                Registration closed <strong>{vm.registrationCloseShort}</strong> – ready to run the selection
+                {m.registrationClosed}
+                <strong>{vm.registrationCloseShort}</strong>
+                {m.readyToRun}
               </>
             )}
-            {!vm.joinLink && <span className="muted"> · set a join code in Settings to share a join link</span>}
+            {!vm.joinLink && <span className="muted">{m.setJoinCode}</span>}
           </span>
           {vm.joinLink && early && (
             <button type="button" className="button button--ghost button--small" onClick={vm.openJoinPage}>
-              Sign up myself
+              {m.signUpMyself}
             </button>
           )}
           {vm.joinLink && (
-            <button type="button" className="icon-tile icon-tile--small" aria-label="Copy join link" onClick={() => void vm.copyJoinLink()}>
+            <button type="button" className="icon-tile icon-tile--small" aria-label={m.copyJoinLink} onClick={() => void vm.copyJoinLink()}>
               <LinkIcon size={18} />
             </button>
           )}
@@ -227,8 +234,8 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
       )}
       {importVisible && (
         <ScreenshotUploader
-          title="Import poll screenshot"
-          hint="Screenshot the in-game poll (the players who voted Yes). Names found are ticked automatically."
+          title={m.importPoll}
+          hint={m.importPollHint}
           imageUrl={ocr.imageUrl}
           status={ocr.status}
           progressLabel={ocr.progressLabel}
@@ -250,7 +257,7 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
         onDismiss={ocr.dismissUnmatched}
       />
       <MemberChecklist
-        checkedLabel="Registered"
+        checkedLabel={m.registered}
         disabled={!vm.editable}
         onSelect={setSheetFor}
         actions={
@@ -258,14 +265,14 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
             <button
               type="button"
               className={`icon-tile${importVisible ? ' is-active' : ''}`}
-              aria-label="Import poll screenshot"
+              aria-label={m.importPoll}
               aria-pressed={importVisible}
               disabled={!vm.editable}
               onClick={() => setShowImport((v) => !v)}
             >
               <CameraIcon />
             </button>
-            <button type="button" className="icon-tile" aria-label="Add new member" disabled={!vm.editable} onClick={() => setAdding(true)}>
+            <button type="button" className="icon-tile" aria-label={m.addNewMember} disabled={!vm.editable} onClick={() => setAdding(true)}>
               <PlusIcon />
             </button>
           </>
@@ -277,33 +284,29 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
           checked: i.registered,
           substituteOnly: i.substituteOnly,
           fromOcr: i.fromOcr,
-          warning: i.inactive ? 'Inactive' : i.suspendedFor > 0 ? `Suspended (${i.suspendedFor})` : undefined,
+          warning: warningOf(i),
           badges: [
-            ...(i.registered && i.selfRegistered ? [{ label: 'Self-registered', tone: 'rank' as const }] : []),
+            ...(i.registered && i.selfRegistered ? [{ label: m.selfRegistered, tone: 'rank' as const }] : []),
             ...(i.otherEventNote ? [{ label: i.otherEventNote, tone: 'muted' as const }] : []),
           ],
           detail:
             i.registered && i.selfRegistered
-              ? `${i.submittedAt ? `Sent ${formatTimestamp(i.submittedAt)}` : 'Sent'}${i.enteredPower !== undefined ? ` · entered ${formatPower(i.enteredPower)}` : ''}${i.powerPending ? ' · power change waiting for review' : ''}`
+              ? `${i.submittedAt ? m.sentAt(formatTimestamp(i.submittedAt)) : m.sent}${i.enteredPower !== undefined ? m.entered(formatPower(i.enteredPower)) : ''}${i.powerPending ? m.powerWaiting : ''}`
               : i.powerPending
-                ? 'Power change waiting for review'
+                ? m.powerWaitingCapital
                 : undefined,
           detailWarning: i.powerPending,
         }))}
       />
       <div className="step-extras">
         <details className="hint-details">
-          <summary className="muted small">How to fill this list</summary>
-          <p className="muted small">
-            Tap a member to tick everyone who voted for {vm.team} – including forgotten voters. In the same sheet, switch on “Sub only” for those who
-            voted to be a substitute: they are never picked as starters. Inactive or suspended members can be ticked but will not be selected.
-            Players who used the join link are already ticked (“Self-registered”); you can still untick them or fix their power.
-          </p>
+          <summary className="muted small">{m.howToFill}</summary>
+          <p className="muted small">{m.howToFillText(vm.team)}</p>
         </details>
         <div className="step-extras__actions">
           {vm.canRunBoth && (
             <button type="button" className="button button--ghost button--small" disabled={early} onClick={() => setConfirmRun(true)}>
-              Run {vm.team} only
+              {m.runOnly(vm.team)}
             </button>
           )}
           <button
@@ -312,7 +315,7 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
             onClick={() => setConfirmClear(true)}
             disabled={!vm.editable || vm.registeredCount === 0}
           >
-            Untick all
+            {m.untickAll}
           </button>
         </div>
       </div>
@@ -320,21 +323,19 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
         <div className="action-bar">
           <div className="action-bar__summary">
             <strong>
-              {vm.registeredCount} registered
-              {vm.substituteOnlyCount > 0 && <span className="muted"> ({vm.substituteOnlyCount} sub only)</span>}
+              {m.registeredCount(vm.registeredCount)}
+              {vm.substituteOnlyCount > 0 && <span className="muted">{m.subOnlyCount(vm.substituteOnlyCount)}</span>}
             </strong>
             {registration && early ? (
-              <span className="is-warning">Join link open – wait until {vm.registrationCloseShort}</span>
+              <span className="is-warning">{m.waitUntil(vm.registrationCloseShort)}</span>
             ) : (
-              <span>
-                {vm.cap} places · {vm.starters} starters + {vm.settings.substitutes} subs
-              </span>
+              <span>{m.placesSummary(vm.cap, vm.starters, vm.settings.substitutes)}</span>
             )}
           </div>
           <button type="button" className="button button--primary" disabled={vm.registeredCount === 0 || early}
             onClick={() => (vm.defaultScope === 'both' ? setConfirmBoth(true) : setConfirmRun(true))}
           >
-            {rerun ? 'Re-run selection' : 'Run selection'}
+            {rerun ? m.rerunSelection : m.runSelection}
             {vm.defaultScope === 'both' && ' (A + B)'}
           </button>
         </div>
@@ -347,13 +348,13 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
           registered={sheetItem.registered}
           substituteOnly={sheetItem.substituteOnly}
           detail={[
-            sheetItem.registered ? (sheetItem.selfRegistered ? 'Self-registered' : sheetItem.fromOcr ? 'From screenshot' : 'Ticked by an R4') : null,
-            sheetItem.submittedAt ? `Sent ${formatTimestamp(sheetItem.submittedAt)}` : null,
+            sheetItem.registered ? (sheetItem.selfRegistered ? m.selfRegistered : sheetItem.fromOcr ? m.fromScreenshot : m.tickedByR4) : null,
+            sheetItem.submittedAt ? m.sentAt(formatTimestamp(sheetItem.submittedAt)) : null,
             sheetItem.otherEventNote ?? null,
           ]
             .filter(Boolean)
             .join(' · ')}
-          warning={sheetItem.inactive ? 'Inactive' : sheetItem.suspendedFor > 0 ? `Suspended (${sheetItem.suspendedFor})` : undefined}
+          warning={warningOf(sheetItem)}
           onClose={() => setSheetFor(null)}
           onToggle={async () => {
             await vm.toggleRegistration(sheetItem.memberId);
@@ -367,7 +368,7 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
         />
       )}
       {editingItem && (
-        <Modal title={`Power – ${editingItem.name}`} onClose={() => setEditingPower(null)}>
+        <Modal title={m.powerOf(editingItem.name)} onClose={() => setEditingPower(null)}>
           <PowerEditor
             name={editingItem.name}
             currentPower={editingItem.power}
@@ -382,33 +383,29 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
       )}
       {confirmRun && !early && (
           <ConfirmDialog
-            title={rerun ? `Re-run the selection for ${vm.team}?` : `Run the selection for ${vm.team}?`}
+            title={rerun ? m.rerunTitle(vm.team) : m.runTitle(vm.team)}
             message={
               <>
-                <p>
-                  {rerun
-                    ? 'The plan is recalculated from the current registrations. Manual moves and swaps are lost.'
-                    : `The lineup is built from the ${pluralise(vm.registeredCount, 'registered player')}, and self-registration with the join link closes for ${vm.team}.`}
-                </p>
-                {!rerun && <p className="muted small">Registrations closed on {vm.registrationCloseLabel}.</p>}
+                <p>{rerun ? m.rerunText : m.runText(t().count.registeredPlayer(vm.registeredCount), vm.team)}</p>
+                {!rerun && <p className="muted small">{m.closedOn(vm.registrationCloseLabel)}</p>}
               </>
             }
-            confirmLabel={rerun ? 'Re-run selection' : 'Run selection'}
+            confirmLabel={rerun ? m.rerunSelection : m.runSelection}
             onCancel={() => setConfirmRun(false)}
             onConfirm={() => runSelection('this')}
           />
         )}
       {confirmBoth && !early && (
           <ConfirmDialog
-            title="Plan Team A and Team B together?"
-            message="Both lineups are recomputed from their registrations so that nobody is in both (the event with fewer players gets first pick). Manual moves and swaps in both events are lost."
-            confirmLabel="Run both"
+            title={m.bothTitle}
+            message={m.bothText}
+            confirmLabel={m.runBoth}
             onCancel={() => setConfirmBoth(false)}
             onConfirm={() => runSelection('both')}
           />
         )}
       {adding && (
-        <Modal title="Add new member" onClose={() => setAdding(false)}>
+        <Modal title={m.addNewMember} onClose={() => setAdding(false)}>
           <MemberForm
             onCancel={() => setAdding(false)}
             onSubmit={async (draft) => {
@@ -421,9 +418,9 @@ function PollStep({ vm }: { vm: WeeklyEventViewModel }) {
       )}
       {confirmClear && (
         <ConfirmDialog
-          title="Untick everyone?"
-          message={`All registrations for ${vm.team} of this week will be removed.`}
-          confirmLabel="Untick all"
+          title={m.untickTitle}
+          message={m.untickText(vm.team)}
+          confirmLabel={m.untickAll}
           danger
           onCancel={() => setConfirmClear(false)}
           onConfirm={async () => {
@@ -442,10 +439,11 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
   const all = [...vm.board.core, ...vm.board.rotation, ...vm.board.substitute, ...vm.board.notSelected];
   const player = selected ? all.find((p) => p.memberId === selected) : undefined;
   const { lateAdds, withdrawn } = vm.drift;
+  const m = t().week;
   const stats = [
-    { slot: 'core', label: 'Core', count: vm.board.core.length, cap: vm.settings.coreStarters },
-    { slot: 'rotation', label: 'Rotation', count: vm.board.rotation.length, cap: vm.settings.rotationStarters },
-    { slot: 'substitute', label: 'Subs', count: vm.board.substitute.length, cap: vm.settings.substitutes },
+    { slot: 'core', label: t().slots.core, count: vm.board.core.length, cap: vm.settings.coreStarters },
+    { slot: 'rotation', label: t().slots.rotation, count: vm.board.rotation.length, cap: vm.settings.rotationStarters },
+    { slot: 'substitute', label: t().slots.subsShort, count: vm.board.substitute.length, cap: vm.settings.substitutes },
   ];
 
   return (
@@ -463,20 +461,19 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
       </div>
       {(lateAdds.length > 0 || withdrawn.length > 0) && vm.editable && (
         <div className="notice notice--warning">
-          <span>
-            Registrations changed since the selection ({lateAdds.length} added, {withdrawn.length} removed).
-          </span>
+          <span>{m.driftNotice(lateAdds.length, withdrawn.length)}</span>
           <button type="button" className="button button--small" onClick={() => void vm.keepPlanWithLateChanges()}>
-            Keep plan, add late ones as subs
+            {m.keepPlan}
           </button>
           <button type="button" className="button button--small" disabled={vm.registrationStillOpen} onClick={() => setConfirmRerun(true)}>
-            Re-run selection
+            {m.rerunSelection}
           </button>
         </div>
       )}
       <p className="muted small step-hint">
-        {vm.editable ? 'Tap a player to move or swap them.' : 'Attendance has started, so the lineup is frozen.'}
-        {vm.board.notSelected.length > 0 && ` ${vm.board.notSelected.length} not selected.`} A player is never in both lineups of the week.
+        {vm.editable ? m.tapToMove : m.frozen}
+        {vm.board.notSelected.length > 0 && m.notSelectedCount(vm.board.notSelected.length)}
+        {m.neverBoth}
       </p>
       <SlotBoard
         board={vm.board}
@@ -492,11 +489,11 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
             disabled={vm.registrationStillOpen}
             onClick={() => (vm.weekHasOverrides ? setConfirmRerun(true) : void vm.runWeeklySelection(vm.defaultScope))}
           >
-            {vm.defaultScope === 'both' ? 'Re-run A + B' : 'Re-run'}
+            {vm.defaultScope === 'both' ? m.rerunBoth : m.rerun}
           </button>
         )}
         <button type="button" className="button button--primary" onClick={() => vm.setStep(3)}>
-          Next: share plan
+          {m.nextShare}
         </button>
       </div>
       {player && (
@@ -516,13 +513,9 @@ function SelectionStep({ vm }: { vm: WeeklyEventViewModel }) {
       )}
       {confirmRerun && (
         <ConfirmDialog
-          title={vm.defaultScope === 'both' ? 'Re-run Team A and Team B?' : 'Re-run the selection?'}
-          message={
-            vm.defaultScope === 'both'
-              ? 'Both lineups are recalculated from their registrations so that nobody is in both. Manual moves and swaps in both events are lost.'
-              : 'The plan is recalculated from the current registrations. Manual moves and swaps are lost.'
-          }
-          confirmLabel="Re-run"
+          title={vm.defaultScope === 'both' ? m.rerunBothTitle : m.rerunSelectionTitle}
+          message={vm.defaultScope === 'both' ? m.rerunBothText : m.rerunText}
+          confirmLabel={m.rerun}
           onCancel={() => setConfirmRerun(false)}
           onConfirm={async () => {
             await vm.runWeeklySelection(vm.defaultScope);
@@ -539,26 +532,27 @@ function ShareStep({ vm }: { vm: WeeklyEventViewModel }) {
   const event = vm.event;
   const locked = event?.status === 'locked';
   const lineup = vm.board.core.length + vm.board.rotation.length + vm.board.substitute.length;
+  const m = t().week;
   return (
     <div className="step">
       <div className="section-head">
-        <h2 className="section-head__title">In-game sign-up list</h2>
-        <span className="muted small">{pluralise(lineup, 'player')}</span>
+        <h2 className="section-head__title">{m.signupList}</h2>
+        <span className="muted small">{t().count.player(lineup)}</span>
       </div>
       <SignupList
         board={vm.board}
         capacity={{ core: vm.settings.coreStarters, rotation: vm.settings.rotationStarters, substitute: vm.settings.substitutes }}
       />
       <details className="hint-details">
-        <summary className="muted small">Plan text for the alliance chat</summary>
+        <summary className="muted small">{m.planText}</summary>
         <pre className="plan-text">{vm.planText}</pre>
       </details>
       <BuildingsSection vm={vm} onReset={() => setConfirmResetBuildings(true)} />
       {confirmResetBuildings && (
         <ConfirmDialog
-          title="Fill the buildings again from power?"
-          message="Your manual moves and swaps on the buildings are lost. The Silo gets the strongest core players again, then the refineries, the science centre, and so on."
-          confirmLabel="Fill again"
+          title={m.refillTitle}
+          message={m.refillText}
+          confirmLabel={m.refill}
           onCancel={() => setConfirmResetBuildings(false)}
           onConfirm={async () => {
             await vm.resetBuildings();
@@ -568,15 +562,15 @@ function ShareStep({ vm }: { vm: WeeklyEventViewModel }) {
       )}
       <div className="action-bar action-bar--row">
         <button type="button" className="button" onClick={() => void vm.copyPlan()}>
-          <CopyIcon size={18} /> Copy plan
+          <CopyIcon size={18} /> {m.copyPlan}
         </button>
         {locked ? (
           <button type="button" className="button button--primary" onClick={() => vm.setStep(4)}>
-            Go to attendance
+            {m.goToAttendance}
           </button>
         ) : (
           <button type="button" className="button button--primary" disabled={!vm.eventOver} onClick={() => void vm.startAttendance()}>
-            {vm.eventOver ? 'Record attendance' : `Attendance from ${vm.eventEndShort}`}
+            {vm.eventOver ? m.recordAttendance : m.attendanceFrom(vm.eventEndShort)}
           </button>
         )}
       </div>
@@ -589,7 +583,8 @@ function BuildingsSection({ vm, onReset }: { vm: WeeklyEventViewModel; onReset: 
   const [selected, setSelected] = useState<string | null>(null);
   const board = vm.buildingBoard;
   const placed = board.buildings.flatMap((b) => b.players.map((p) => ({ ...p, building: b.id, buildingLabel: b.label })));
-  const unplaced = board.unplaced.map((p) => ({ ...p, building: null, buildingLabel: 'Not placed' }));
+  const m = t().week;
+  const unplaced = board.unplaced.map((p) => ({ ...p, building: null, buildingLabel: m.notPlaced }));
   const all = [...placed, ...unplaced];
   const player = selected ? all.find((p) => p.memberId === selected) : undefined;
   const filled = placed.length;
@@ -597,44 +592,42 @@ function BuildingsSection({ vm, onReset }: { vm: WeeklyEventViewModel; onReset: 
   return (
     <>
       <div className="section-head">
-        <h2 className="section-head__title">Buildings</h2>
-        <span className="muted small">
-          {filled}/{places} placed
-        </span>
+        <h2 className="section-head__title">{m.buildings}</h2>
+        <span className="muted small">{m.placed(filled, places)}</span>
       </div>
       <p className="muted small step-hint">
-        {vm.buildingsEditable ? 'Filled from power: strongest core players in the Silo, then refineries, science centre, information centre, Arsenal, mercenary factory, the rest in the hospitals. Tap a name to move or swap it.' : 'The event is finalised; the buildings can no longer be changed.'}
+        {vm.buildingsEditable ? m.buildingsHint : m.buildingsFinal}
       </p>
       <BuildingBoard board={board} onSelectPlayer={vm.buildingsEditable ? setSelected : undefined} selectedId={selected} />
       {vm.hasBuildingMoves && vm.buildingsEditable && (
         <div className="step-extras__actions">
           <button type="button" className="button button--ghost button--small" onClick={onReset}>
-            Fill again from power
+            {m.refillFromPower}
           </button>
         </div>
       )}
       <div className="section-head">
-        <h2 className="section-head__title">Image for the game chat</h2>
+        <h2 className="section-head__title">{m.imageTitle}</h2>
       </div>
       {vm.buildingImageError ? (
         <div className="notice notice--danger">{vm.buildingImageError}</div>
       ) : vm.buildingImageUrl ? (
-        <img className="image-preview" src={vm.buildingImageUrl} alt={`Building assignments of ${vm.team}`} />
+        <img className="image-preview" src={vm.buildingImageUrl} alt={m.imageAlt(vm.team)} />
       ) : (
-        <p className="muted small">Drawing the image…</p>
+        <p className="muted small">{m.drawing}</p>
       )}
       <div className="step-extras__actions">
         <button type="button" className="button button--small" disabled={!vm.buildingImageUrl} onClick={() => void vm.downloadBuildingImage('this')}>
-          <DownloadIcon size={18} /> Download image
+          <DownloadIcon size={18} /> {m.download}
         </button>
         {vm.otherTeamHasPlan && (
           <button type="button" className="button button--ghost button--small" disabled={!vm.buildingImageUrl} onClick={() => void vm.downloadBuildingImage('both')}>
-            Download both teams
+            {m.downloadBoth}
           </button>
         )}
         {vm.canShareImage && (
           <button type="button" className="button button--ghost button--small" disabled={!vm.buildingImageUrl} onClick={() => void vm.shareBuildingImage('this')}>
-            <ShareIcon size={18} /> Share…
+            <ShareIcon size={18} /> {m.share}
           </button>
         )}
       </div>
@@ -662,17 +655,18 @@ function AttendanceStep({ vm }: { vm: WeeklyEventViewModel }) {
   const [confirm, setConfirm] = useState(false);
   const ocr = vm.attendanceOcr;
   const s = vm.attendanceSummary;
+  const m = t().week;
   return (
     <div className="step">
       <div className="join-strip">
-        <span className="join-strip__text">Lineup is frozen while attendance is recorded.</span>
+        <span className="join-strip__text">{m.frozenAttendance}</span>
         <button type="button" className="button button--small" onClick={() => void vm.unlockPlan()}>
-          Back to planning
+          {m.backToPlanning}
         </button>
       </div>
       <ScreenshotUploader
-        title="Participation screenshot"
-        hint={`After the event, screenshot the ${vm.team} participant list. Players found are marked as entered.`}
+        title={m.participation}
+        hint={m.participationHint(vm.team)}
         imageUrl={ocr.imageUrl}
         status={ocr.status}
         progressLabel={ocr.progressLabel}
@@ -683,8 +677,8 @@ function AttendanceStep({ vm }: { vm: WeeklyEventViewModel }) {
         onClear={ocr.clear}
       />
       <UnmatchedNames
-        title="Not matched to this week's lineup"
-        hint="These names are not core, rotation or substitutes this week (or were misread). Tap one only if it is a lineup player with a different spelling; otherwise ignore it."
+        title={m.notMatched}
+        hint={m.notMatchedHint}
         unmatched={ocr.unmatched}
         members={vm.attendanceItems.map((i) => ({ id: i.memberId, name: i.name }))}
         onAssign={(guess, id) => void vm.assignUnmatched(guess, id, 'attendance')}
@@ -698,30 +692,28 @@ function AttendanceStep({ vm }: { vm: WeeklyEventViewModel }) {
       />
       <div className={`notice ${vm.penaltyPreview.length ? 'notice--danger' : 'notice--success'}`}>
         {vm.penaltyPreview.length
-          ? `On finalising, ${vm.penaltyPreview.map((p) => p.name).join(', ')} will be suspended for ${pluralise(vm.settings.suspensionEvents, 'event')}.`
-          : 'No penalties: every absent starter notified an R4.'}
+          ? m.penaltyPreview(vm.penaltyPreview.map((p) => p.name).join(', '), t().count.event(vm.settings.suspensionEvents))
+          : m.noPenaltyPreview}
       </div>
       <div className="action-bar">
         <div className="action-bar__summary">
-          <strong>
-            Starters {s.startersPresent}/{s.starters}
-          </strong>
-          <span>{pluralise(s.subsUsed, 'substitute')} used</span>
+          <strong>{m.startersPresent(s.startersPresent, s.starters)}</strong>
+          <span>{m.subsUsed(s.subsUsed)}</span>
         </div>
         <button type="button" className="button button--primary" onClick={() => setConfirm(true)}>
-          Finalise event
+          {m.finaliseEvent}
         </button>
       </div>
       {confirm && (
         <ConfirmDialog
-          title="Finalise this event?"
+          title={m.finaliseTitle}
           message={
             <>
-              <p>This records attendance in the history, updates rotation priority, counts down existing suspensions by one event{vm.penaltyPreview.length ? ' and suspends the no-shows listed' : ''}.</p>
-              <p className="muted small">A finalised event cannot be edited.</p>
+              <p>{m.finaliseText(vm.penaltyPreview.length > 0)}</p>
+              <p className="muted small">{m.finaliseNote}</p>
             </>
           }
-          confirmLabel="Finalise"
+          confirmLabel={m.finalise}
           onCancel={() => setConfirm(false)}
           onConfirm={async () => {
             await vm.finalise();

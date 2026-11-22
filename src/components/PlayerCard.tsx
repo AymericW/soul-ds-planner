@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { formatPower } from '@/helpers/format';
 
 export interface PlayerCardData {
@@ -26,7 +27,7 @@ export function PlayerCard({ player, showOrder, onSelect, highlighted }: PlayerC
         {showOrder && <span className="player-card__order">{player.order + 1}</span>}
         <span className="player-card__name">{player.name}</span>
         {player.rank && <span className="badge badge--rank">{player.rank}</span>}
-        {player.overridden && <span className="badge badge--warning">Manual</span>}
+        {player.overridden && <span className="badge badge--warning">{t().week.manual}</span>}
         <span className="player-card__meta">
           {formatPower(player.power)} · ★{player.activity}
         </span>

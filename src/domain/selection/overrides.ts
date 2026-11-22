@@ -1,12 +1,7 @@
+import { t } from '@/helpers/i18n';
 import type { Assignment, Slot } from '@/models/Assignment';
 import { SLOTS } from '@/models/Assignment';
 
-const SLOT_LABEL: Record<Slot, string> = {
-  core: 'Core',
-  rotation: 'Rotation',
-  substitute: 'Substitutes',
-  notSelected: 'Not selected',
-};
 
 /** Re-numbers `order` inside each slot, keeping the current relative order. */
 function renumber(assignments: Assignment[]): Assignment[] {
@@ -27,7 +22,7 @@ export function moveAssignment(assignments: readonly Assignment[], memberId: str
   return renumber(
     assignments.map((a) =>
       a.memberId === memberId
-        ? { ...a, slot: to, order: endOrder, overridden: true, reason: `Moved to ${SLOT_LABEL[to]} by R4 (was: ${a.reason})` }
+        ? { ...a, slot: to, order: endOrder, overridden: true, reason: t().rules.movedTo(slotLabel(to), a.reason) }
         : a,
     ),
   );
@@ -40,8 +35,8 @@ export function swapAssignments(assignments: readonly Assignment[], memberA: str
   if (!a || !b || memberA === memberB) return [...assignments];
   return renumber(
     assignments.map((x) => {
-      if (x.memberId === memberA) return { ...x, slot: b.slot, order: b.order, overridden: true, reason: `Swapped into ${SLOT_LABEL[b.slot]} by R4` };
-      if (x.memberId === memberB) return { ...x, slot: a.slot, order: a.order, overridden: true, reason: `Swapped into ${SLOT_LABEL[a.slot]} by R4` };
+      if (x.memberId === memberA) return { ...x, slot: b.slot, order: b.order, overridden: true, reason: t().rules.swappedInto(slotLabel(b.slot)) };
+      if (x.memberId === memberB) return { ...x, slot: a.slot, order: a.order, overridden: true, reason: t().rules.swappedInto(slotLabel(a.slot)) };
       return x;
     }),
   );
@@ -52,7 +47,7 @@ export function addAssignment(
   assignments: readonly Assignment[],
   memberId: string,
   slot: Slot = 'substitute',
-  reason = 'Late registration added by R4',
+  reason = t().rules.lateRegistration,
 ): Assignment[] {
   if (assignments.some((a) => a.memberId === memberId)) return [...assignments];
   const order = assignments.filter((a) => a.slot === slot).reduce((max, a) => Math.max(max, a.order + 1), 0);
@@ -65,7 +60,7 @@ export function removeAssignment(assignments: readonly Assignment[], memberId: s
 }
 
 export function slotLabel(slot: Slot): string {
-  return SLOT_LABEL[slot];
+  return t().slots[slot];
 }
 
 export function assignmentsBySlot(assignments: readonly Assignment[]): Record<Slot, Assignment[]> {

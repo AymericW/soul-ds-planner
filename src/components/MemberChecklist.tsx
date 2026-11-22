@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useMemo, useState, type ReactNode } from 'react';
 import { formatPower } from '@/helpers/format';
 import { normaliseName } from '@/helpers/normalise';
@@ -50,19 +51,20 @@ export function MemberChecklist({ items, onSelect, disabled, checkedLabel, actio
     });
   }, [items, search, filter]);
 
+  const m = t().week;
   const filters: ReadonlyArray<{ value: Filter; label: string }> = [
-    { value: 'all', label: `All ${items.length}` },
+    { value: 'all', label: m.all(items.length) },
     { value: 'checked', label: `${checkedLabel} ${checkedCount}` },
-    { value: 'unchecked', label: `Not yet ${items.length - checkedCount}` },
+    { value: 'unchecked', label: m.notYet(items.length - checkedCount) },
   ];
 
   return (
     <div className="checklist">
       <div className="checklist__search">
-        <SearchInput value={search} onChange={setSearch} placeholder="Find a member" />
+        <SearchInput value={search} onChange={setSearch} placeholder={m.findMember} />
         {actions}
       </div>
-      <div className="filter-chips" role="radiogroup" aria-label="Show">
+      <div className="filter-chips" role="radiogroup" aria-label={m.show}>
         {filters.map((f) => (
           <button
             key={f.value}
@@ -80,9 +82,9 @@ export function MemberChecklist({ items, onSelect, disabled, checkedLabel, actio
         {visible.map((item) => {
           const tags = [
             ...(item.warning ? [{ label: item.warning, tone: 'danger' }] : []),
-            ...(item.checked && item.substituteOnly ? [{ label: 'Sub only', tone: 'sub' }] : []),
+            ...(item.checked && item.substituteOnly ? [{ label: m.subOnly, tone: 'sub' }] : []),
             ...(item.badges ?? []),
-            ...(item.fromOcr && item.checked ? [{ label: 'From screenshot', tone: 'success' }] : []),
+            ...(item.fromOcr && item.checked ? [{ label: m.fromScreenshot, tone: 'success' }] : []),
           ];
           return (
             <li key={item.id}>
@@ -109,12 +111,12 @@ export function MemberChecklist({ items, onSelect, disabled, checkedLabel, actio
                 <span className="tickbox" aria-hidden="true">
                   {item.checked && <CheckIcon size={16} />}
                 </span>
-                <span className="visually-hidden">{item.checked ? checkedLabel : `Not ${checkedLabel.toLowerCase()}`}</span>
+                <span className="visually-hidden">{item.checked ? checkedLabel : m.not(checkedLabel.toLowerCase())}</span>
               </button>
             </li>
           );
         })}
-        {visible.length === 0 && <li className="muted checklist__empty">Nobody matches.</li>}
+        {visible.length === 0 && <li className="muted checklist__empty">{m.nobodyMatches}</li>}
       </ul>
     </div>
   );

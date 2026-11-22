@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useState } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState } from '@/components/EmptyState';
@@ -10,19 +11,19 @@ import { SearchInput } from '@/components/SearchInput';
 import { Segmented } from '@/components/Segmented';
 import { useRosterViewModel, type RosterFilter, type RosterSort } from '@/viewmodels/useRosterViewModel';
 
-const SORT_OPTIONS: ReadonlyArray<{ value: RosterSort; label: string }> = [
-  { value: 'name', label: 'Name' },
-  { value: 'power', label: 'Power' },
-  { value: 'activity', label: 'Activity' },
-  { value: 'participation', label: 'Participation' },
-  { value: 'lastPlayed', label: 'Longest without playing' },
+const sortOptions = (): ReadonlyArray<{ value: RosterSort; label: string }> => [
+  { value: 'name', label: t().roster.sortName },
+  { value: 'power', label: t().roster.sortPower },
+  { value: 'activity', label: t().roster.sortActivity },
+  { value: 'participation', label: t().roster.sortParticipation },
+  { value: 'lastPlayed', label: t().roster.sortLastPlayed },
 ];
 
-const FILTER_OPTIONS: ReadonlyArray<{ value: RosterFilter; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'active', label: 'Active' },
-  { value: 'inactive', label: 'Inactive' },
-  { value: 'suspended', label: 'Suspended' },
+const filterOptions = (): ReadonlyArray<{ value: RosterFilter; label: string }> => [
+  { value: 'all', label: t().roster.filterAll },
+  { value: 'active', label: t().roster.filterActive },
+  { value: 'inactive', label: t().roster.filterInactive },
+  { value: 'suspended', label: t().roster.filterSuspended },
 ];
 
 type Editing = { mode: 'add' } | { mode: 'edit'; id: string } | null;
@@ -34,37 +35,36 @@ export function RosterScreen() {
 
   const editingRow = editing?.mode === 'edit' ? vm.rows.find((r) => r.member.id === editing.id) : undefined;
   const deletingRow = confirmDeleteId ? vm.rows.find((r) => r.member.id === confirmDeleteId) : undefined;
+  const m = t().roster;
 
   return (
     <section className="screen">
       <div className="screen__head">
-        <h1 className="screen__title">Roster</h1>
-        <p className="muted small">
-          {vm.counts.total} members · {vm.counts.active} active · {vm.counts.suspended} suspended
-        </p>
+        <h1 className="screen__title">{m.title}</h1>
+        <p className="muted small">{m.counts(vm.counts.total, vm.counts.active, vm.counts.suspended)}</p>
       </div>
 
       <div className="toolbar">
         <button type="button" className="button button--primary" onClick={() => setEditing({ mode: 'add' })}>
-          + Add member
+          {m.add}
         </button>
         <FileButton accept=".csv,.tsv,.txt,.xlsx,.xls,text/csv" onFile={(f) => void vm.startImport(f)} disabled={vm.busy}>
-          Import CSV / Excel
+          {m.import}
         </FileButton>
         <button type="button" className="button" onClick={vm.exportCsv} disabled={vm.counts.total === 0}>
-          Export CSV
+          {m.export}
         </button>
       </div>
 
       {vm.counts.total === 0 && !vm.loading ? (
-        <EmptyState title="No members yet">
+        <EmptyState title={m.empty}>
           <p>
-            Add members one by one or import your roster spreadsheet (columns: name, power, activity, rank, active)
-            {import.meta.env.DEV ? ', or try the app with a demo roster.' : '.'}
+            {m.emptyHint}
+            {import.meta.env.DEV ? m.emptyDemo : '.'}
           </p>
           {import.meta.env.DEV && (
             <button type="button" className="button button--primary" onClick={() => void vm.loadDemoRoster()}>
-              Load demo roster
+              {m.loadDemo}
             </button>
           )}
         </EmptyState>
@@ -72,11 +72,11 @@ export function RosterScreen() {
         <>
           <SearchInput value={vm.search} onChange={vm.setSearch} />
           <div className="filters">
-            <Segmented label="Filter" value={vm.filter} options={FILTER_OPTIONS} onChange={vm.setFilter} />
+            <Segmented label={m.filter} value={vm.filter} options={filterOptions()} onChange={vm.setFilter} />
             <label className="sort">
-              <span className="muted small">Sort</span>
+              <span className="muted small">{m.sort}</span>
               <select className="input input--compact" value={vm.sort} onChange={(e) => vm.setSort(e.target.value as RosterSort)}>
-                {SORT_OPTIONS.map((o) => (
+                {sortOptions().map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>
@@ -89,12 +89,12 @@ export function RosterScreen() {
               <MemberCard key={member.id} member={member} stats={stats} onSelect={() => setEditing({ mode: 'edit', id: member.id })} />
             ))}
           </div>
-          {vm.rows.length === 0 && <p className="muted">No member matches “{vm.search}”.</p>}
+          {vm.rows.length === 0 && <p className="muted">{m.noMatch(vm.search)}</p>}
         </>
       )}
 
       {editing && (
-        <Modal title={editing.mode === 'add' ? 'Add member' : `Edit ${editingRow?.member.name ?? 'member'}`} onClose={() => setEditing(null)}>
+        <Modal title={editing.mode === 'add' ? m.addTitle : m.editTitle(editingRow?.member.name ?? m.member)} onClose={() => setEditing(null)}>
           <MemberForm
             member={editingRow?.member}
             suspensionRemaining={editingRow?.stats.suspensionRemaining}
@@ -113,14 +113,13 @@ export function RosterScreen() {
 
       {deletingRow && (
         <ConfirmDialog
-          title="Delete member?"
+          title={m.deleteTitle}
           message={
             <p>
-              Remove <strong>{deletingRow.member.name}</strong> from the roster? Past events keep their history. To keep the
-              member but stop selecting them, mark them inactive instead.
+              {m.deleteBefore} <strong>{deletingRow.member.name}</strong> {m.deleteAfter}
             </p>
           }
-          confirmLabel="Delete"
+          confirmLabel={t().common.delete}
           danger
           onCancel={() => setConfirmDeleteId(null)}
           onConfirm={async () => {
@@ -133,12 +132,12 @@ export function RosterScreen() {
 
       {vm.importPreview && (
         <Modal
-          title="Import preview"
+          title={m.importPreview}
           onClose={vm.cancelImport}
           footer={
             <>
               <button type="button" className="button button--ghost" onClick={vm.cancelImport}>
-                Cancel
+                {t().common.cancel}
               </button>
               <button
                 type="button"
@@ -146,7 +145,7 @@ export function RosterScreen() {
                 disabled={vm.busy || vm.importPreview.plan.toAdd.length + vm.importPreview.plan.toUpdate.length === 0}
                 onClick={() => void vm.commitImport()}
               >
-                Apply import
+                {m.applyImport}
               </button>
             </>
           }

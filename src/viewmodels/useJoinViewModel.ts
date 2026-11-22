@@ -1,5 +1,5 @@
+import { t } from '@/helpers/i18n';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { EVENT_SLOT_INFO } from '@/constants/events';
 import { JoinError, type JoinErrorCode } from '@/data/repositories';
 import { NO_CHOICES, validateJoinPower, validateUnlistedName } from '@/domain/join/joinRules';
 import { formatEventDate } from '@/helpers/dates';
@@ -10,19 +10,10 @@ import { EVENT_SLOTS, type EventSlot } from '@/models/WeekEvent';
 import { useAppServices } from './AppServicesContext';
 import { readHashParams } from './useNavigationViewModel';
 
-const ERROR_MESSAGES: Record<JoinErrorCode, string> = {
-  bad_code: 'This join link or code is not valid (any more). Ask an R4 for the current link.',
-  closed: 'Registrations for this event are closed (sign-ups end Wednesday 10 PM (22h) Paris time). Contact an R4 if something changed.',
-  invalid_member: 'This name is not in the active roster (any more). Use “I’m not in the list”.',
-  invalid_power: 'This power looks wrong. Write it like 152.3M or 152300000.',
-  invalid_choices: 'Choose “Not available”, “Play” or “Sub only” for each event.',
-  invalid_name: 'Write your in-game name (2 to 32 characters).',
-  rate_limited: 'Too many attempts. Wait a few minutes and try again.',
-  too_many_requests: 'There are too many open requests right now. Please contact an R4 directly.',
-  unavailable: 'The server could not be reached. Check your connection and try again.',
+const messageOf = (e: unknown): string => {
+  const messages: Record<JoinErrorCode, string> = t().join.errors;
+  return messages[e instanceof JoinError ? e.code : 'unavailable'];
 };
-
-const messageOf = (e: unknown) => ERROR_MESSAGES[e instanceof JoinError ? e.code : 'unavailable'];
 
 export type JoinPhase = 'enterCode' | 'loading' | 'badCode' | 'ready';
 
@@ -99,8 +90,8 @@ export function useJoinViewModel() {
         const e = roster?.events.find((x) => x.slot === slot);
         return {
           slot,
-          team: EVENT_SLOT_INFO[slot].team,
-          timeLabel: EVENT_SLOT_INFO[slot].joinTimeLabel,
+          team: t().events.team(slot),
+          timeLabel: t().events.joinTimeLabel(slot),
           dateLabel: e ? formatEventDate(e.date) : '',
           // Older servers do not send `open`: only events without a selection were open there.
           open: e ? (e.open ?? e.status === 'registration') : false,

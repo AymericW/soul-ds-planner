@@ -105,6 +105,29 @@ h3 {
   font-weight: 500;
 }
 
+/* FR / EN switch: shows the language you switch to. */
+.app-header__lang {
+  margin-left: auto;
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0.2rem 0.65rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.app-header__lang:hover,
+.app-header__lang:focus-visible {
+  color: var(--color-text);
+  border-color: var(--color-accent);
+}
+
 .app-main {
   padding: 1rem;
 }

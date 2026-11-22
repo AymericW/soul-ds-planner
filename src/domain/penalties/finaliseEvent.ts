@@ -1,4 +1,5 @@
-import { pluralise } from '@/helpers/format';
+import { t } from '@/helpers/i18n';
+import { formatEventDate } from '@/helpers/dates';
 import type { Attendance } from '@/models/Attendance';
 import type { Settings } from '@/models/Settings';
 import type { Suspension } from '@/models/Suspension';
@@ -39,8 +40,8 @@ export class FinaliseError extends Error {}
  */
 export function finaliseEvent(input: FinaliseInput): FinaliseResult {
   const { event, settings, nowIso, newId } = input;
-  if (event.status === 'finalised') throw new FinaliseError('This event is already finalised.');
-  if (event.status === 'registration') throw new FinaliseError('Run the selection before finalising.');
+  if (event.status === 'finalised') throw new FinaliseError(t().rules.alreadyFinalised);
+  if (event.status === 'registration') throw new FinaliseError(t().rules.runSelectionFirst);
 
   const given = new Map(input.attendance.map((a) => [a.memberId, a]));
   const attendance: Attendance[] = event.assignments
@@ -64,7 +65,7 @@ export function finaliseEvent(input: FinaliseInput): FinaliseResult {
           createdAt: nowIso,
           totalEvents: total,
           remainingEvents: total,
-          reason: `No-show without notice at ${event.label} – suspended for ${pluralise(total, 'week')}.`,
+          reason: t().rules.noShowSuspension(`${t().events.team(event.slot)} – ${formatEventDate(event.date)}`, t().count.week(total)),
         }));
 
   return {

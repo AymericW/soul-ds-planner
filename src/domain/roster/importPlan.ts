@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { DEFAULT_ACTIVITY } from '@/constants/rules';
 import { normaliseName } from '@/helpers/normalise';
 import { formatPower } from '@/helpers/format';
@@ -22,11 +23,11 @@ export function planRosterImport(
   for (const row of rows) {
     const key = normaliseName(row.name);
     if (!key) {
-      plan.skipped.push({ rowNumber: row.rowNumber, message: 'Missing name.' });
+      plan.skipped.push({ rowNumber: row.rowNumber, message: t().rules.importMissingName });
       continue;
     }
     if (seen.has(key)) {
-      plan.skipped.push({ rowNumber: row.rowNumber, message: `Duplicate of an earlier row ("${row.name}").` });
+      plan.skipped.push({ rowNumber: row.rowNumber, message: t().rules.importDuplicate(row.name) });
       continue;
     }
     seen.add(key);
@@ -37,17 +38,17 @@ export function planRosterImport(
     }
     const changes: string[] = [];
     if (row.power !== undefined && row.power !== member.power) {
-      changes.push(`power ${formatPower(member.power)} → ${formatPower(row.power)}`);
+      changes.push(t().rules.importPower(formatPower(member.power), formatPower(row.power)));
     }
     if (row.activity !== undefined && row.activity !== member.activity) {
-      changes.push(`activity ${member.activity} → ${row.activity}`);
+      changes.push(t().rules.importActivity(member.activity, row.activity));
     }
-    if (row.rank !== undefined && row.rank !== member.rank) changes.push(`rank ${member.rank ?? '–'} → ${row.rank}`);
+    if (row.rank !== undefined && row.rank !== member.rank) changes.push(t().rules.importRank(member.rank ?? '–', row.rank));
     if (row.active !== undefined && row.active !== member.active) {
-      changes.push(row.active ? 'reactivated' : 'set inactive');
+      changes.push(row.active ? t().rules.importReactivated : t().rules.importSetInactive);
     }
     if (row.name !== member.name && normaliseName(row.name) === normaliseName(member.name)) {
-      changes.push(`name "${member.name}" → "${row.name}"`);
+      changes.push(t().rules.importName(member.name, row.name));
     }
     if (changes.length) plan.toUpdate.push({ memberId: member.id, existingName: member.name, row, changes });
     else plan.unchanged.push(row);

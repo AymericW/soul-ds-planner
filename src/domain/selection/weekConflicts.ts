@@ -1,4 +1,4 @@
-import { EVENT_SLOT_INFO } from '@/constants/events';
+import { t } from '@/helpers/i18n';
 import { isStarterSlot, type Slot } from '@/models/Assignment';
 import type { WeekEvent } from '@/models/WeekEvent';
 
@@ -19,7 +19,7 @@ export function commitmentIn(otherEvents: readonly WeekEvent[], memberId: string
   let best: WeekCommitment | undefined;
   const rank = { substitute: 1, starter: 2, entered: 3 } as const;
   for (const event of otherEvents) {
-    const team = EVENT_SLOT_INFO[event.slot].team;
+    const team = t().events.team(event.slot);
     const assignment = event.assignments.find((a) => a.memberId === memberId);
     const entered = Boolean(assignment && assignment.slot !== 'notSelected' && event.attendance.some((a) => a.memberId === memberId && a.attended));
     let kind: WeekCommitment['kind'] | undefined;
@@ -32,9 +32,9 @@ export function commitmentIn(otherEvents: readonly WeekEvent[], memberId: string
 }
 
 export function commitmentReason(c: WeekCommitment): string {
-  if (c.kind === 'entered') return `Already played in ${c.team} this week`;
-  if (c.kind === 'starter') return `Starter in ${c.team} this week`;
-  return `Substitute in ${c.team} this week`;
+  if (c.kind === 'entered') return t().rules.alreadyPlayedIn(c.team);
+  if (c.kind === 'starter') return t().rules.starterIn(c.team);
+  return t().rules.substituteIn(c.team);
 }
 
 /**
@@ -45,13 +45,13 @@ export function placementConflict(memberId: string, slot: Slot, otherEvents: rea
   if (slot === 'notSelected') return null;
   const c = commitmentIn(otherEvents, memberId);
   if (!c) return null;
-  if (c.kind === 'entered') return `${commitmentReason(c)}: a player can only play one event per week.`;
-  if (c.kind === 'starter') return `${commitmentReason(c)}: a starter cannot also be listed in the other event.`;
-  return `${commitmentReason(c)}: a player can only be a substitute for one event per week. Remove them there first.`;
+  if (c.kind === 'entered') return t().rules.onePerWeek(commitmentReason(c));
+  if (c.kind === 'starter') return t().rules.starterElsewhere(commitmentReason(c));
+  return t().rules.substituteElsewhere(commitmentReason(c));
 }
 
 /** Why attendance cannot be recorded for this member (entered the other event already), or null. */
 export function attendanceConflict(memberId: string, otherEvents: readonly WeekEvent[]): string | null {
   const c = commitmentIn(otherEvents, memberId);
-  return c?.kind === 'entered' ? `${commitmentReason(c)}: a player can only play one event per week.` : null;
+  return c?.kind === 'entered' ? t().rules.onePerWeek(commitmentReason(c)) : null;
 }

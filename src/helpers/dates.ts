@@ -1,3 +1,6 @@
+import type { Locale } from '@/constants/i18n';
+import { messagesFor, t } from './i18n';
+
 /** Local date as yyyy-mm-dd. */
 export function toIsoDate(date: Date): string {
   const y = date.getFullYear();
@@ -6,19 +9,28 @@ export function toIsoDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** "2026-10-05" -> "Mon 5 Oct 2026" (English, independent of device locale). */
-export function formatEventDate(isoDate: string): string {
+/** "2026-10-05" -> "Mon 5 Oct 2026" / "lun. 5 oct. 2026" (app language, independent of device locale). */
+export function formatEventDate(isoDate: string, locale?: Locale): string {
   const [y, m, d] = isoDate.split('-').map(Number);
   if (!y || !m || !d) return isoDate;
   const date = new Date(y, m - 1, d);
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const { days, months } = (locale ? messagesFor(locale) : t()).dates;
   return `${days[date.getDay()]} ${d} ${months[m - 1]} ${y}`;
 }
 
-/** "Desert Storm Team A – Fri 16 Oct 2026" (the database builds the same label in ensure_week_events). */
-export function defaultEventLabel(isoDate: string, team: string): string {
-  return `Desert Storm ${team} – ${formatEventDate(isoDate)}`;
+/** "2026-10-05" -> "Mon" / "lun.". */
+export function formatWeekday(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  if (!y || !m || !d) return isoDate;
+  return t().dates.days[new Date(y, m - 1, d).getDay()] ?? '';
+}
+
+/**
+ * "Desert Storm Team A – Fri 16 Oct 2026": stored with the event, always in English because the
+ * database builds the same label in ensure_week_events.
+ */
+export function defaultEventLabel(isoDate: string, slot: string): string {
+  return `Desert Storm ${messagesFor('en').events.team(slot)} – ${formatEventDate(isoDate, 'en')}`;
 }
 
 export function formatTimestamp(iso: string): string {

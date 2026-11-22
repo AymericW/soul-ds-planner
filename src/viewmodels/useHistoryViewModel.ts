@@ -1,5 +1,5 @@
+import { t } from '@/helpers/i18n';
 import { useMemo, useState } from 'react';
-import { EVENT_SLOT_INFO } from '@/constants/events';
 import { compareEventsChronologically } from '@/domain/history/eventHistory';
 import { isSuspensionActive } from '@/domain/penalties/suspensions';
 import { assignmentsBySlot } from '@/domain/selection/overrides';
@@ -56,7 +56,7 @@ export function useHistoryViewModel() {
         const suspendedIds = new Set(issued.map((s) => s.memberId));
         const player = (memberId: string, slot: Slot): HistoryPlayer => ({
           memberId,
-          name: names.get(memberId) ?? '(removed member)',
+          name: names.get(memberId) ?? t().common.removedMember,
           slot,
           attended: attendance.get(memberId)?.attended ?? false,
           notified: attendance.get(memberId)?.notified ?? false,
@@ -66,7 +66,7 @@ export function useHistoryViewModel() {
         return {
           id: e.id,
           label: e.label,
-          team: EVENT_SLOT_INFO[e.slot]?.team ?? 'Team A',
+          team: t().events.team(e.slot ?? 'A'),
           date: e.date,
           status: e.status,
           registered: e.registrations.length,
@@ -76,10 +76,17 @@ export function useHistoryViewModel() {
             rotation: slots.rotation.map((a) => player(a.memberId, 'rotation')),
             substitute: slots.substitute.map((a) => player(a.memberId, 'substitute')),
           },
-          notSelected: slots.notSelected.map((a) => names.get(a.memberId) ?? '(removed member)'),
-          penalties: issued.map((x) => `${names.get(x.memberId) ?? '(removed member)'} – ${x.totalEvents} events`),
+          notSelected: slots.notSelected.map((a) => names.get(a.memberId) ?? t().common.removedMember),
+          penalties: issued.map((x) => t().history.penaltyLine(names.get(x.memberId) ?? t().common.removedMember, x.totalEvents)),
           rules: s
-            ? `${s.coreStarters} core · ${s.rotationStarters} rotation · ${s.substitutes} subs · weights ${Math.round(s.weights.power * 100)}/${Math.round(s.weights.activity * 100)} · suspension ${s.suspensionEvents}`
+            ? t().history.rules(
+                s.coreStarters,
+                s.rotationStarters,
+                s.substitutes,
+                Math.round(s.weights.power * 100),
+                Math.round(s.weights.activity * 100),
+                s.suspensionEvents,
+              )
             : null,
         };
       });
@@ -89,7 +96,7 @@ export function useHistoryViewModel() {
     () =>
       suspensions
         .filter(isSuspensionActive)
-        .map((s) => ({ id: s.id, name: names.get(s.memberId) ?? '(removed member)', remaining: s.remainingEvents, reason: s.reason }))
+        .map((s) => ({ id: s.id, name: names.get(s.memberId) ?? t().common.removedMember, remaining: s.remainingEvents, reason: s.reason }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     [suspensions, names],
   );

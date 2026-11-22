@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import type { Slot } from '@/models/Assignment';
 import { PlayerCard, type PlayerCardData } from './PlayerCard';
 
@@ -15,17 +16,17 @@ interface SlotBoardProps {
   selectedId?: string | null;
 }
 
-const SECTIONS: ReadonlyArray<{ slot: Slot; title: string; hint: string }> = [
-  { slot: 'core', title: 'Core starters', hint: 'Best relative score (power + activity)' },
-  { slot: 'rotation', title: 'Rotation starters', hint: 'Fair turn for players who waited longest' },
-  { slot: 'substitute', title: 'Substitutes', hint: 'Called in this order if a starter is missing' },
-  { slot: 'notSelected', title: 'Not selected', hint: 'No place left, inactive or suspended' },
+const sections = (): ReadonlyArray<{ slot: Slot; title: string; hint: string }> => [
+  { slot: 'core', title: t().slots.coreStarters, hint: t().week.coreHint },
+  { slot: 'rotation', title: t().slots.rotationStarters, hint: t().week.rotationHint },
+  { slot: 'substitute', title: t().slots.substitute, hint: t().week.substituteHint },
+  { slot: 'notSelected', title: t().slots.notSelected, hint: t().week.notSelectedHint },
 ];
 
 export function SlotBoard({ board, capacity, onSelectPlayer, selectedId }: SlotBoardProps) {
   return (
     <div className="slot-board">
-      {SECTIONS.map(({ slot, title, hint }) => {
+      {sections().map(({ slot, title, hint }) => {
         const players = board[slot];
         if (slot === 'notSelected' && players.length === 0) return null;
         const cap = slot === 'notSelected' ? null : capacity[slot];
@@ -36,7 +37,7 @@ export function SlotBoard({ board, capacity, onSelectPlayer, selectedId }: SlotB
               <span className="slot__count">{cap === null ? players.length : `${players.length}/${cap}`}</span>
             </header>
             {players.length === 0 ? (
-              <p className="muted small">Nobody.</p>
+              <p className="muted small">{t().common.nobody}</p>
             ) : (
               <div className="slot__list">
                 {players.map((p) => (

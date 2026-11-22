@@ -1,4 +1,4 @@
-import { EVENT_SLOT_INFO, EVENT_TIME_ZONE, EVENT_WEEKDAY, REGISTRATION_CLOSE_DAYS_BEFORE, REGISTRATION_CLOSE_HOUR } from '@/constants/events';
+import { EVENT_TIME_ZONE, EVENT_WEEKDAY, REGISTRATION_CLOSE_DAYS_BEFORE, REGISTRATION_CLOSE_HOUR } from '@/constants/events';
 import { addDays, dateInTimeZone, defaultEventLabel, nextWeekdayOnOrAfter, weekStart, zonedTimeToUtc } from '@/helpers/dates';
 import { EVENT_SLOTS, type EventSlot, type WeekEvent } from '@/models/WeekEvent';
 import { compareEventsChronologically } from '@/domain/history/eventHistory';
@@ -36,7 +36,7 @@ export function weekEventId(date: string, slot: EventSlot): string {
 export function createWeekEvent(date: string, slot: EventSlot, nowIso: string): WeekEvent {
   return {
     id: weekEventId(date, slot),
-    label: defaultEventLabel(date, EVENT_SLOT_INFO[slot].team),
+    label: defaultEventLabel(date, slot),
     date,
     slot,
     status: 'registration',

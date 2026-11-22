@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import type { JoinChoices, JoinRequest, JoinRoster, JoinSubmissionView, JoinSubmitResult } from '@/models/JoinRequest';
 import type { Member } from '@/models/Member';
 import type { PowerChange } from '@/models/PowerChange';
@@ -14,7 +15,7 @@ import type { WeekEvent } from '@/models/WeekEvent';
 
 /** Thrown when an event was changed by someone else since it was read. Re-read and retry. */
 export class ConflictError extends Error {
-  constructor(message = 'This event was changed by someone else.') {
+  constructor(message = t().services.conflict) {
     super(message);
     this.name = 'ConflictError';
   }

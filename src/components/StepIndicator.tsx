@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 interface Step {
   id: number;
   label: string;
@@ -13,7 +14,7 @@ interface StepIndicatorProps {
 /** Slim progress bar: one line per step, each line + label is a tap target to jump to that step. */
 export function StepIndicator({ steps, current, onSelect }: StepIndicatorProps) {
   return (
-    <ol className="steps" aria-label="Weekly steps">
+    <ol className="steps" aria-label={t().week.stepsAria}>
       {steps.map((s) => (
         <li key={s.id}>
           <button

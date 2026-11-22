@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useState } from 'react';
 import { formatPower } from '@/helpers/format';
 import { Modal } from './Modal';
@@ -42,14 +43,15 @@ export function RegistrationSheet({
     }
   };
 
+  const m = t().week;
   return (
     <Modal
-      title={registered ? `Untick ${name}?` : `Tick ${name}?`}
+      title={registered ? m.untickName(name) : m.tickName(name)}
       onClose={onClose}
       footer={
         <>
           <button type="button" className="button button--ghost" onClick={onClose}>
-            Keep
+            {m.keep}
           </button>
           <button
             type="button"
@@ -57,7 +59,7 @@ export function RegistrationSheet({
             disabled={working}
             onClick={() => void run(onToggle)}
           >
-            {registered ? 'Untick' : 'Tick'}
+            {registered ? m.untick : m.tick}
           </button>
         </>
       }
@@ -71,18 +73,18 @@ export function RegistrationSheet({
           {detail && <span className="muted small">{detail}</span>}
         </span>
       </div>
-      <p className="sheet-text">{registered ? `${name} will be removed from the ${team} registrations.` : `${name} will be registered for ${team}.`}</p>
-      {warning && <div className="notice notice--warning small">{warning}: can be ticked but will not be selected.</div>}
+      <p className="sheet-text">{registered ? m.willBeRemoved(name, team) : m.willBeRegistered(name, team)}</p>
+      {warning && <div className="notice notice--warning small">{m.canBeTicked(warning)}</div>}
       {registered && (
         <div className="sheet-options">
           <label className="switch">
             <input type="checkbox" checked={substituteOnly} disabled={working} onChange={() => void run(onToggleSubstitute)} />
             <span>
-              Sub only <span className="muted small">– voted to be a substitute, never picked as starter</span>
+              {m.subOnly} <span className="muted small">{m.subOnlyHint}</span>
             </span>
           </label>
           <button type="button" className="button button--ghost button--small" onClick={onEditPower}>
-            Edit power
+            {m.editPower}
           </button>
         </div>
       )}

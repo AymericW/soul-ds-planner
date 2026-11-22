@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { computeOcrScale, preprocessForOcr } from '@/helpers/imagePreprocessing';
 
 export interface OcrProgress {
@@ -41,7 +42,7 @@ async function prepareCanvas(image: Blob): Promise<HTMLCanvasElement> {
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx) throw new OcrUnavailableError('Canvas is not available on this device.');
+  if (!ctx) throw new OcrUnavailableError(t().services.ocrNoCanvas);
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
@@ -70,7 +71,7 @@ export function createTesseractOcrService(): OcrService {
         const { createWorker, OEM, PSM } = api;
         const worker = await createWorker(['eng', 'fra'], OEM.LSTM_ONLY, {
           logger: (m) => {
-            const label = m.status.startsWith('recogniz') ? 'Reading names…' : 'Loading OCR engine…';
+            const label = m.status.startsWith('recogniz') ? t().services.ocrReading : t().services.ocrLoading;
             progressListener?.({ label, progress: m.progress });
           },
         });
@@ -87,19 +88,17 @@ export function createTesseractOcrService(): OcrService {
   return {
     async recognize(image, onProgress) {
       progressListener = onProgress;
-      onProgress?.({ label: 'Loading OCR engine…', progress: 0 });
+      onProgress?.({ label: t().services.ocrLoading, progress: 0 });
       try {
-        const worker = await withTimeout(getWorker(), ENGINE_TIMEOUT_MS, 'Loading the OCR engine took too long.');
+        const worker = await withTimeout(getWorker(), ENGINE_TIMEOUT_MS, t().services.ocrTimeout);
         const canvas = await prepareCanvas(image);
         const { data } = await worker.recognize(canvas);
-        onProgress?.({ label: 'Done', progress: 1 });
+        onProgress?.({ label: t().services.ocrDone, progress: 1 });
         return data.text;
       } catch (error) {
         if (error instanceof OcrUnavailableError) throw error;
         console.warn('OCR unavailable:', error);
-        throw new OcrUnavailableError(
-          'Automatic reading is not available right now (the OCR engine needs an internet connection the first time it is used). Tick the names by hand in the checklist below.',
-        );
+        throw new OcrUnavailableError(t().services.ocrUnavailable);
       } finally {
         progressListener = undefined;
       }

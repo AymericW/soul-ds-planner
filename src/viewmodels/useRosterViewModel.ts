@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useCallback, useMemo, useState } from 'react';
 import { UI_STORAGE_KEYS } from '@/constants/storageKeys';
 import { computeRosterStats } from '@/domain/history/memberStats';
@@ -126,7 +127,7 @@ export function useRosterViewModel() {
       const change = leaderPowerChange(existing, member, newId(), nowIso);
       if (change) await repos.powerChanges.saveMany([change]);
       await reload();
-      notify(existing ? `${member.name} updated.` : `${member.name} added to the roster.`, 'success');
+      notify(existing ? t().roster.updated(member.name) : t().roster.added(member.name), 'success');
       return {};
     },
     [members, now, newId, repos, reload, notify],
@@ -137,7 +138,7 @@ export function useRosterViewModel() {
       const member = members.find((m) => m.id === id);
       await repos.members.delete(id);
       await reload();
-      if (member) notify(`${member.name} removed. Past events keep their records.`, 'info');
+      if (member) notify(t().roster.removed(member.name), 'info');
     },
     [members, repos, reload, notify],
   );
@@ -146,7 +147,7 @@ export function useRosterViewModel() {
     async (memberId: string) => {
       await repos.suspensions.saveMany(liftSuspensions(memberId, suspensions, now().toISOString()));
       await reload();
-      notify('Suspension lifted.', 'success');
+      notify(t().roster.suspensionLifted, 'success');
     },
     [suspensions, repos, now, reload, notify],
   );
@@ -169,7 +170,7 @@ export function useRosterViewModel() {
         const plan = planRosterImport(members, parse.rows, parse.issues);
         setImportPreview({ fileName: file.name, parse, plan });
       } catch (e) {
-        notify(e instanceof Error ? `Import failed: ${e.message}` : 'Import failed.', 'error');
+        notify(e instanceof Error ? t().roster.importFailed(e.message) : t().roster.importFailedShort, 'error');
       } finally {
         setBusy(false);
       }
@@ -191,7 +192,7 @@ export function useRosterViewModel() {
       if (history.length) await repos.powerChanges.saveMany(history);
       await reload();
       notify(
-        `Import done: ${plan.toAdd.length} added, ${plan.toUpdate.length} updated, ${plan.unchanged.length} unchanged, ${plan.skipped.length} skipped.`,
+        t().roster.importDone(plan.toAdd.length, plan.toUpdate.length, plan.unchanged.length, plan.skipped.length),
         'success',
       );
       setImportPreview(null);

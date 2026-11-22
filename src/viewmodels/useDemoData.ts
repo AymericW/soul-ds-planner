@@ -1,3 +1,4 @@
+import { t } from '@/helpers/i18n';
 import { useCallback } from 'react';
 import { DEMO_ROSTER } from '@/data/demo/demoRoster';
 import { applyRosterImportPlan, planRosterImport } from '@/domain/roster/importPlan';
@@ -16,6 +17,6 @@ export function useDemoData(onLoaded: () => Promise<void> | void) {
     );
     await repos.members.saveMany(applyRosterImportPlan(plan, members, now().toISOString(), newId));
     await onLoaded();
-    notify(`Demo roster loaded: ${plan.toAdd.length} added, ${plan.toUpdate.length} updated.`, 'success');
+    notify(t().roster.demoLoaded(plan.toAdd.length, plan.toUpdate.length), 'success');
   }, [repos, now, newId, notify, onLoaded]);
 }
